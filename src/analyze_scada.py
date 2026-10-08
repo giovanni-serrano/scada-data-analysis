@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from .alarms import DEADBAND, NO_DEADBAND, OFF_DELAY_HOURS, ON_DELAY_HOURS, alarm_kpis, annunciate, sustained  # noqa: F401
-from .common import SIGNALS, TAG_TO_SIGNAL, TRIP_MESSAGE, write_json
+from .common import SIGNALS, TAG_TO_SIGNAL, TRIP_MESSAGE, spanish as number, write_json
 
 METRICS = ["winding_rise_c", "current_spread_pct", "voltage_spread_pct"]
 LABELS = ["Elevación térmica (°C)", "Dispersión de corriente (%)", "Dispersión de tensión (%)"]
@@ -273,8 +273,6 @@ def analyze(root, figures=True):
 
 def write_report(root, s):
     q = json.loads((root / "reports/quality_summary.json").read_text(encoding="utf-8"))
-    def number(value, digits=2):
-        return "—" if value is None else f"{value:.{digits}f}".replace(".", ",")
     periods = "\n".join(
         f"| {p['period']} | {p['eligible_hours']} | {number(p['winding_rise_c_median'])} | {number(p['current_spread_pct_median'])} | {number(p['current_spread_pct_p99'])} | {number(p['voltage_spread_pct_median'])} | {p['alarm_high_hours']} |"
         for p in s["periods"]

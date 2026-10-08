@@ -18,7 +18,7 @@ Los intervalos son del 95 %, por remuestreo de años completos (2000 repeticione
 
 | Método | Detección [IC 95 %] | Episodios | Falsas alarmas por 1000 h [IC 95 %] | Horas normales en alarma | Anticipación mediana h [IC 95 %] | Anticipación P10–P90 h |
 |---|---|---:|---|---:|---|---|
-| Condicionado por carga y ambiente | 64 % [58; 70] | 186/291 | 0,47 [0,38; 0,56] | 0,08 % | 37 [31; 41] | 10–70 |
+| Condicionado por carga y ambiente | 64 % [58; 70] | 186/291 | 0,47 [0,38; 0,56] | 0,08 % | 37 [31; 41] | 11–70 |
 | Condicionado solo por carga | 60 % [54; 66] | 174/291 | 0,10 [0,07; 0,14] | 0,02 % | 32 [29; 36] | 9–65 |
 | Línea base: umbral fijo | 28 % [23; 34] | 82/291 | 0,15 [0,11; 0,20] | 0,04 % | 30 [24; 38] | 4–67 |
 

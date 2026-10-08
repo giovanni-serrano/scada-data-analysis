@@ -1,5 +1,6 @@
 """Shared schema and small file helpers. All paths are relative to an output root."""
 import csv
+from decimal import ROUND_HALF_UP, Decimal
 import hashlib
 import json
 from pathlib import Path
@@ -34,6 +35,13 @@ SIGNAL_TO_TAG = dict(zip(SIGNALS, TAGS))
 # RAW files carry historian tags; the analysis renames them to descriptive columns.
 RAW_FIELDS = ["date", "time", "record_type", "event_message", *TAGS]
 TRIP_MESSAGE = "unit_trip"
+
+
+def spanish(value, digits=2):
+    """Decimal comma, rounding halves up like the dashboard's number formatter does."""
+    if value is None:
+        return "—"
+    return str(Decimal(value).quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP)).replace(".", ",")
 
 
 def digest(path):

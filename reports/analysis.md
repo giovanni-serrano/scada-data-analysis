@@ -39,7 +39,7 @@ Desde el fin de la referencia (4168 horas elegibles, episodios incluidos):
 |---|---|---|---:|---:|---:|---:|---:|---:|
 | `G1_TW_HI` | Elevación térmica sobre su referencia | baja | 106 | 25,43 | 2 | 74 | 2 | 26 |
 | `G1_IUNB_HI` | Dispersión de corriente sobre su referencia | baja | 33 | 7,92 | 1 | 23 | 1 | 12 |
-| `G1_DEG_HH` | Exceso conjunto de elevación térmica y dispersión de corriente | alta | 14 | 3,36 | 6 | 6 | 1 | 6 |
+| `G1_DEG_HH` | Exceso conjunto de elevación térmica y dispersión de corriente | alta | 14 | 3,36 | 7 | 6 | 1 | 6 |
 
 Sin banda muerta, las mismas alarmas se activan 176 veces y se reactivan 62 veces
 en menos de 6 h; con banda muerta, 153 y 44.

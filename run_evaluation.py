@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from src.analyze_scada import ALERT, CONTEXT, GRID, SERIES, figure_save
-from src.common import write_json
+from src.common import spanish as number, write_json
 from src.evaluate import BASELINE, CALIBRATION_SEEDS, EVALUATION_SEEDS, MAX_FALSE_ALARMS_PER_1000H, METHODS, PRIMARY, evaluate
 
 NAMES = {"load_ambient": "Condicionado por carga y ambiente", "load": "Condicionado solo por carga",
@@ -19,12 +19,8 @@ STYLE = {PRIMARY: ("#2a78d6", "o"), BASELINE: ("#eb6834", "s")}
 INK = "#1e2030"
 
 
-def number(value, digits=2):
-    return "—" if value is None else f"{value:.{digits}f}".replace(".", ",")
-
-
 def percent(value):
-    return "—" if value is None else f"{100 * value:.0f} %"
+    return "—" if value is None else number(100 * value, 0) + " %"
 
 
 def interval(pair, scale=1, digits=2):
