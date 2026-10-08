@@ -10,7 +10,7 @@ El recorrido permite seguir cada observación hasta su archivo de origen, recono
 
 El dashboard organiza el análisis en cinco vistas: **Resumen, Variables eléctricas, Calidad de datos, Anomalías y Metodología**. Permite explorar fases eléctricas, ampliar periodos, alternar temperaturas absolutas y elevación térmica, y examinar las 72, 24 y 6 horas anteriores al evento artificial.
 
-**Dirección prevista del sitio — pendiente de publicación y comprobación:** https://giovanni-serrano.github.io/scada-data-analysis/
+**[Explorar el dashboard interactivo](https://giovanni-serrano.github.io/scada-data-analysis/)**
 
 La aplicación estática está en [`docs/`](docs/). Presenta los resultados calculados en Python y utiliza una copia local de Plotly.js. Las instrucciones de [reproducción local](#reproducción-local) permiten ejecutar el análisis y abrir el dashboard.
 
