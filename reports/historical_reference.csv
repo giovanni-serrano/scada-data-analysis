@@ -1,4 +1,4 @@
-load_bin,ambient_bin,n,winding_rise_c_median,winding_rise_c_p99,current_spread_pct_median,current_spread_pct_p99,voltage_spread_pct_median,voltage_spread_pct_p99
+load_bin,ambient_bin,n,winding_rise_c_median,winding_rise_c_threshold,current_spread_pct_median,current_spread_pct_threshold,voltage_spread_pct_median,voltage_spread_pct_threshold
 1,1,180,15.46561666666666,18.36818733333333,1.2917113929864699,2.9087938517392473,0.7208268124646094,1.0993461092448986
 1,2,231,16.388699999999996,18.861266666666666,1.2276680804133173,2.8960130791261656,0.7338926536303917,1.1859548888690103
 2,0,239,17.923,20.37485,1.2444568107033789,2.951639156411319,0.6951237847936219,1.164424407582297

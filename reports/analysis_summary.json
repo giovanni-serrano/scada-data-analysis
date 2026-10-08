@@ -22,8 +22,7 @@
       "available_hours": 4311,
       "eligible_hours": 4179,
       "joint_high_hours": 0,
-      "persistent_alert_hours": 0,
-      "alert_activations": 0,
+      "alarm_high_hours": 0,
       "winding_rise_c_median": 24.883599999999998,
       "winding_rise_c_p99": 35.95261466666668,
       "current_spread_pct_median": 1.081143129038739,
@@ -38,8 +37,7 @@
       "available_hours": 3945,
       "eligible_hours": 3765,
       "joint_high_hours": 1,
-      "persistent_alert_hours": 0,
-      "alert_activations": 0,
+      "alarm_high_hours": 0,
       "winding_rise_c_median": 24.637300000000003,
       "winding_rise_c_p99": 35.62844266666667,
       "current_spread_pct_median": 1.0628307812239395,
@@ -61,10 +59,10 @@
       "voltage_spread_delta_pct": 0.2093250679111742,
       "phase": "a",
       "eligible_hours": 100,
-      "persistent_alert_hours": 2,
+      "alarm_high_hours": 2,
       "detected": true,
-      "first_alert": "2025-07-22T06:00:00",
       "lead_hours": 5.0,
+      "lead_hours_any_priority": 43.0,
       "winding_rise_c_residual_last_24h": 4.8446166666666635,
       "current_spread_pct_residual_last_24h": 1.6194164972559406
     },
@@ -80,10 +78,10 @@
       "voltage_spread_delta_pct": 0.37133521173458006,
       "phase": "b",
       "eligible_hours": 96,
-      "persistent_alert_hours": 6,
+      "alarm_high_hours": 11,
       "detected": true,
-      "first_alert": "2025-09-20T11:00:00",
       "lead_hours": 24.0,
+      "lead_hours_any_priority": 91.0,
       "winding_rise_c_residual_last_24h": 9.055458333333341,
       "current_spread_pct_residual_last_24h": 1.8238859196110933
     },
@@ -99,10 +97,10 @@
       "voltage_spread_delta_pct": 0.34340636979193095,
       "phase": "c",
       "eligible_hours": 95,
-      "persistent_alert_hours": 35,
+      "alarm_high_hours": 41,
       "detected": true,
-      "first_alert": "2025-10-21T12:00:00",
       "lead_hours": 53.0,
+      "lead_hours_any_priority": 71.0,
       "winding_rise_c_residual_last_24h": 6.0467999999999975,
       "current_spread_pct_residual_last_24h": 3.848849770641602
     },
@@ -118,12 +116,174 @@
       "voltage_spread_delta_pct": 0.1949272096002538,
       "phase": "c",
       "eligible_hours": 112,
-      "persistent_alert_hours": 5,
+      "alarm_high_hours": 5,
       "detected": true,
-      "first_alert": "2025-12-11T16:00:00",
       "lead_hours": 18.0,
+      "lead_hours_any_priority": 24.0,
       "winding_rise_c_residual_last_24h": 3.629050000000001,
       "current_spread_pct_residual_last_24h": 2.0290493755532886
     }
-  ]
+  ],
+  "alarms": {
+    "settings": {
+      "percentile": 99,
+      "conditioning": "load_ambient",
+      "on_delay_hours": 3,
+      "off_delay_hours": 1,
+      "deadband": {
+        "winding_rise_c": 1.0,
+        "current_spread_pct": 0.4
+      }
+    },
+    "after_reference": {
+      "eligible_hours": 4168,
+      "activations": 38,
+      "activations_per_hour": 0.009117082533589251,
+      "activations_by_priority": {
+        "baja": 28,
+        "alta": 10
+      },
+      "fleeting": 12,
+      "stale": 3,
+      "repeats": 12,
+      "points": [
+        {
+          "tag": "G1_TW_HI",
+          "priority": "baja",
+          "description": "Elevación térmica sobre su referencia",
+          "activations": 18,
+          "activations_per_1000h": 4.318618042226488,
+          "hours_active": 162,
+          "median_duration_hours": 7.0,
+          "fleeting": 2,
+          "stale": 1,
+          "repeats": 5
+        },
+        {
+          "tag": "G1_IUNB_HI",
+          "priority": "baja",
+          "description": "Dispersión de corriente sobre su referencia",
+          "activations": 10,
+          "activations_per_1000h": 2.399232245681382,
+          "hours_active": 82,
+          "median_duration_hours": 4.5,
+          "fleeting": 4,
+          "stale": 1,
+          "repeats": 3
+        },
+        {
+          "tag": "G1_DEG_HH",
+          "priority": "alta",
+          "description": "Exceso conjunto de elevación térmica y dispersión de corriente",
+          "activations": 10,
+          "activations_per_1000h": 2.399232245681382,
+          "hours_active": 59,
+          "median_duration_hours": 2.0,
+          "fleeting": 6,
+          "stale": 1,
+          "repeats": 4
+        }
+      ]
+    },
+    "after_reference_without_deadband": {
+      "eligible_hours": 4168,
+      "activations": 46,
+      "activations_per_hour": 0.011036468330134356,
+      "activations_by_priority": {
+        "baja": 34,
+        "alta": 12
+      },
+      "fleeting": 17,
+      "stale": 1,
+      "repeats": 19,
+      "points": [
+        {
+          "tag": "G1_TW_HI",
+          "priority": "baja",
+          "description": "Elevación térmica sobre su referencia",
+          "activations": 22,
+          "activations_per_1000h": 5.278310940499041,
+          "hours_active": 128,
+          "median_duration_hours": 4.0,
+          "fleeting": 2,
+          "stale": 0,
+          "repeats": 9
+        },
+        {
+          "tag": "G1_IUNB_HI",
+          "priority": "baja",
+          "description": "Dispersión de corriente sobre su referencia",
+          "activations": 12,
+          "activations_per_1000h": 2.8790786948176583,
+          "hours_active": 71,
+          "median_duration_hours": 2.0,
+          "fleeting": 7,
+          "stale": 1,
+          "repeats": 4
+        },
+        {
+          "tag": "G1_DEG_HH",
+          "priority": "alta",
+          "description": "Exceso conjunto de elevación térmica y dispersión de corriente",
+          "activations": 12,
+          "activations_per_1000h": 2.8790786948176583,
+          "hours_active": 48,
+          "median_duration_hours": 2.0,
+          "fleeting": 8,
+          "stale": 0,
+          "repeats": 6
+        }
+      ]
+    },
+    "normal_operation": {
+      "eligible_hours": 3765,
+      "activations": 3,
+      "activations_per_hour": 0.0007968127490039841,
+      "activations_by_priority": {
+        "baja": 3,
+        "alta": 0
+      },
+      "fleeting": 2,
+      "stale": 0,
+      "repeats": 0,
+      "points": [
+        {
+          "tag": "G1_TW_HI",
+          "priority": "baja",
+          "description": "Elevación térmica sobre su referencia",
+          "activations": 3,
+          "activations_per_1000h": 0.796812749003984,
+          "hours_active": 7,
+          "median_duration_hours": 2.0,
+          "fleeting": 2,
+          "stale": 0,
+          "repeats": 0
+        },
+        {
+          "tag": "G1_IUNB_HI",
+          "priority": "baja",
+          "description": "Dispersión de corriente sobre su referencia",
+          "activations": 0,
+          "activations_per_1000h": 0.0,
+          "hours_active": 0,
+          "median_duration_hours": null,
+          "fleeting": 0,
+          "stale": 0,
+          "repeats": 0
+        },
+        {
+          "tag": "G1_DEG_HH",
+          "priority": "alta",
+          "description": "Exceso conjunto de elevación térmica y dispersión de corriente",
+          "activations": 0,
+          "activations_per_1000h": 0.0,
+          "hours_active": 0,
+          "median_duration_hours": null,
+          "fleeting": 0,
+          "stale": 0,
+          "repeats": 0
+        }
+      ]
+    }
+  }
 }

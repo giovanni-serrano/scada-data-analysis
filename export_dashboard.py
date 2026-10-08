@@ -7,7 +7,7 @@ import tempfile
 import pandas as pd
 
 from run_pipeline import run
-from src.analyze_scada import METRICS, apply_reference, derive, event_windows
+from src.analyze_scada import METRICS, derive, detect, event_windows
 from src.common import SIGNALS, TAG_CATALOG, digest
 from src.generate_synthetic_scada import SEED
 
@@ -48,16 +48,16 @@ def build_payload(root):
     source = pd.read_csv(root / "data/processed/scada.csv", keep_default_na=False)
     review = source.requires_review.astype(str).str.lower().eq("true")
     selected = source[(source.record_type == "measurement") & ~review]
-    d, _ = apply_reference(derive(selected), pd.Timestamp(summary["reference_end_exclusive"]))
+    d, _ = detect(derive(selected), pd.Timestamp(summary["reference_end_exclusive"]))
     reference_start = pd.Timestamp(truth["start"]) + pd.Timedelta(days=150)
     reference_end = reference_start + pd.Timedelta(days=14)
     reference = d[(d.t >= reference_start) & (d.t < reference_end) & d.eligible]
     relation_columns = ["t", "active_power_kw", "reactive_power_kvar", "phase_current_a", "phase_current_b",
                         "phase_current_c", "mean_current_a", "mean_voltage_v", "room_temperature_c",
                         "winding_temperature_a_c", "winding_temperature_b_c", "winding_temperature_c_c", "winding_rise_c"]
-    timeline_columns = ["t", "hours_to_trip", "eligible", "persistent_alert", "joint_high"]
+    timeline_columns = ["t", "hours_to_trip", "eligible", "alarm_high", "priority"]
     for metric in METRICS:
-        timeline_columns += [metric, metric + "_p99"]
+        timeline_columns += [metric, metric + "_threshold"]
     events, recent = [], []
     for (start, trip, _, _), scored in zip(event_windows(truth), summary["events"]):
         timeline = d[(d.t >= start - pd.Timedelta(hours=24)) & (d.t < trip)].copy()

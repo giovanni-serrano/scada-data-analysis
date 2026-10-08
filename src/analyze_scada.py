@@ -9,28 +9,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from .alarms import DEADBAND, NO_DEADBAND, OFF_DELAY_HOURS, ON_DELAY_HOURS, alarm_kpis, annunciate, sustained  # noqa: F401
 from .common import SIGNALS, TAG_TO_SIGNAL, TRIP_MESSAGE, write_json
 
 METRICS = ["winding_rise_c", "current_spread_pct", "voltage_spread_pct"]
 LABELS = ["Elevación térmica (°C)", "Dispersión de corriente (%)", "Dispersión de tensión (%)"]
 LOAD_EDGES = [0, 200, 300, 400, 500, 600, 700, 900]
 AMBIENT_EDGES = [10, 26.5, 29.5, 45]
+PERCENTILE = 99
+# What a threshold is conditioned on; "none" is the fixed-threshold baseline.
+CONDITIONING = {"load_ambient": ["load_bin", "ambient_bin"], "load": ["load_bin"], "none": []}
 # Same roles and values as the dashboard tokens in docs/styles.css.
 SERIES, CONTEXT, ALERT, GRID = "#33375c", "#7d8298", "#d03b3b", "#e6e7ef"
-
-
-def sustained(mask, times, length=3):
-    """Mark the third and subsequent consecutive positive hourly observations."""
-    flag = np.asarray(mask, dtype=bool)
-    if not len(flag):
-        return pd.Series(flag, index=getattr(mask, "index", None), dtype=bool)
-    step = pd.Series(times).diff().eq(pd.Timedelta(hours=1)).to_numpy()
-    # The count restarts wherever the run of consecutive positive hours is broken.
-    restart = ~(flag & step)
-    position = np.arange(len(flag))
-    origin = np.maximum.accumulate(np.where(restart, position, 0))
-    count = position - origin + flag[origin]
-    return pd.Series(count >= length, index=getattr(mask, "index", None), dtype=bool)
 
 
 def flat_sensor(values, times, minimum=6):
@@ -67,33 +57,44 @@ def derive(frame):
     return d
 
 
-def apply_reference(d, cutoff, minimum=30):
-    baseline = d[(d.t < cutoff) & d.steady_generation & ~d.sensor_flat]
-    cells = []
+def apply_reference(d, cutoff, minimum=30, percentile=PERCENTILE, conditioning="load_ambient"):
+    """Thresholds from observations before cutoff only, one set per conditioning cell."""
+    keys = CONDITIONING[conditioning]
     out = d.copy()
+    # Cell code: -1 marks observations outside every band; "none" puts everything in cell 0.
+    cell = pd.Series(0, index=out.index)
+    for key in keys:
+        cell = cell * 100 + out[key].fillna(-1e6)
+    cell = cell.where(cell >= 0, -1).astype(int)
+    usable = (out.t < cutoff) & out.steady_generation & ~out.sensor_flat & cell.ge(0)
+    grouped = out.loc[usable, METRICS].groupby(cell[usable])
+    counts = grouped.size()
+    admitted = counts[counts >= minimum].index
+    medians, uppers = grouped.median().loc[admitted], grouped.quantile(percentile / 100).loc[admitted]
+    out["reference_count"] = cell.map(counts.loc[admitted]).fillna(0).astype(int)
     for metric in METRICS:
-        out[metric + "_median"] = np.nan
-        out[metric + "_p99"] = np.nan
-    out["reference_count"] = 0
-    for (load, ambient), group in baseline.groupby(["load_bin", "ambient_bin"]):
-        if len(group) < minimum:
-            continue
-        match = out.load_bin.eq(load) & out.ambient_bin.eq(ambient)
-        cell = {"load_bin": int(load), "ambient_bin": int(ambient), "n": len(group)}
-        out.loc[match, "reference_count"] = len(group)
+        out[metric + "_median"] = cell.map(medians[metric])
+        out[metric + "_threshold"] = cell.map(uppers[metric])
+    cells = []
+    for code in admitted:
+        entry = {key: int(code // 100 ** (len(keys) - 1 - index) % 100) for index, key in enumerate(keys)}
+        entry["n"] = int(counts[code])
         for metric in METRICS:
-            median, upper = group[metric].median(), group[metric].quantile(.99)
-            cell[metric + "_median"], cell[metric + "_p99"] = float(median), float(upper)
-            out.loc[match, metric + "_median"] = median
-            out.loc[match, metric + "_p99"] = upper
-        cells.append(cell)
+            entry[metric + "_median"] = float(medians.at[code, metric])
+            entry[metric + "_threshold"] = float(uppers.at[code, metric])
+        cells.append(entry)
     out["eligible"] = out.steady_generation & ~out.sensor_flat & out.reference_count.ge(minimum)
     for metric in METRICS:
         out[metric + "_residual"] = out[metric] - out[metric + "_median"]
-        out[metric + "_high"] = out.eligible & out[metric].gt(out[metric + "_p99"])
+        out[metric + "_high"] = out.eligible & out[metric].gt(out[metric + "_threshold"])
     out["joint_high"] = out.winding_rise_c_high & out.current_spread_pct_high
-    out["persistent_alert"] = sustained(out.joint_high, out.t)
     return out, cells
+
+
+def detect(d, cutoff, percentile=PERCENTILE, conditioning="load_ambient", on_delay=ON_DELAY_HOURS, deadband=DEADBAND):
+    """Thresholds plus alarm states. Nothing here reads the event list."""
+    out, cells = apply_reference(d, cutoff, percentile=percentile, conditioning=conditioning)
+    return annunciate(out, on_delay=on_delay, deadband=deadband), cells
 
 
 def event_windows(truth):
@@ -102,18 +103,21 @@ def event_windows(truth):
              pd.Timestamp(e["trip_time"]) + pd.Timedelta(hours=e["shutdown_hours"]), e) for e in truth["events"]]
 
 
+def first_lead(ramp, trip, state):
+    active = ramp[state]
+    return float((trip - active.t.min()).total_seconds() / 3600) if len(active) else None
+
+
 def score_events(d, truth):
     rows = []
     for start, trip, _, event in event_windows(truth):
         ramp = d[(d.t >= start) & (d.t < trip)]
-        alerts = ramp[ramp.persistent_alert]
-        first = alerts.t.min() if len(alerts) else None
+        lead = first_lead(ramp, trip, ramp.alarm_high)
         last_day = ramp[(ramp.t >= trip - pd.Timedelta(hours=24)) & ramp.eligible]
         rows.append({**event, "eligible_hours": int(ramp.eligible.sum()),
-                     "persistent_alert_hours": int(ramp.persistent_alert.sum()),
-                     "detected": first is not None,
-                     "first_alert": first.isoformat() if first is not None else None,
-                     "lead_hours": float((trip - first).total_seconds() / 3600) if first is not None else None,
+                     "alarm_high_hours": int(ramp.alarm_high.sum()),
+                     "detected": lead is not None, "lead_hours": lead,
+                     "lead_hours_any_priority": first_lead(ramp, trip, ramp.priority > 0),
                      "winding_rise_c_residual_last_24h": float(last_day.winding_rise_c_residual.median()) if len(last_day) else None,
                      "current_spread_pct_residual_last_24h": float(last_day.current_spread_pct_residual.median()) if len(last_day) else None})
     return rows
@@ -172,9 +176,9 @@ def make_figures(d, ref_end, truth, root):
         for row, (metric, label) in enumerate(zip(METRICS[:2], LABELS[:2])):
             ax = axes[row][column]
             ax.plot(hours, view[metric].where(view.eligible), color=SERIES, lw=1.4, label="Indicador")
-            ax.plot(hours, view[metric + "_p99"].where(view.eligible), color=CONTEXT, lw=1.2, ls="--", label="Umbral P99 de su celda")
-            alerts = view.persistent_alert.to_numpy()
-            ax.scatter(hours[alerts], view[metric][alerts], color=ALERT, s=14, zorder=3, label="Alerta persistente")
+            ax.plot(hours, view[metric + "_threshold"].where(view.eligible), color=CONTEXT, lw=1.2, ls="--", label="Umbral P99 de su celda")
+            alerts = view.alarm_high.to_numpy()
+            ax.scatter(hours[alerts], view[metric][alerts], color=ALERT, s=14, zorder=3, label="Alarma de prioridad alta")
             ax.axvline(-event["ramp_hours"], color=CONTEXT, lw=.8, ls=":")
             if not column:
                 ax.set_ylabel(label)
@@ -218,23 +222,31 @@ def analyze(root, figures=True):
     review = source.requires_review.astype(str).str.lower().eq("true")
     # Selection for statistics only: all source rows remain in the processed CSV.
     selected = source[(source.record_type == "measurement") & ~review]
-    d, cells = apply_reference(derive(selected), ref_end)
+    derived = derive(selected)
+    d, cells = detect(derived, ref_end)
     events = score_events(d, truth)
-    activation = d.persistent_alert & ~d.persistent_alert.shift(fill_value=False)
     end = start + pd.Timedelta(hours=truth["expected_hours"])
-    periods = {"reference": (d.t < ref_end, start, ref_end), "normal_operation": (normal_operation(d, truth, ref_end), ref_end, end)}
+    normal = normal_operation(d, truth, ref_end)
+    periods = {"reference": (d.t < ref_end, start, ref_end), "normal_operation": (normal, ref_end, end)}
     summaries = []
     for name, (mask, lo, hi) in periods.items():
         part = d[mask & d.eligible]
         entry = {"period": name, "start_inclusive": lo.isoformat(), "end_exclusive": hi.isoformat(),
                  "available_hours": int(mask.sum()), "eligible_hours": len(part),
-                 "joint_high_hours": int(part.joint_high.sum()),
-                 "persistent_alert_hours": int(part.persistent_alert.sum()),
-                 "alert_activations": int((activation & mask).sum())}
+                 "joint_high_hours": int(part.joint_high.sum()), "alarm_high_hours": int(part.alarm_high.sum())}
         for metric in METRICS:
             entry[metric + "_median"] = float(part[metric].median()) if len(part) else None
             entry[metric + "_p99"] = float(part[metric].quantile(.99)) if len(part) else None
         summaries.append(entry)
+    # Same thresholds with and without deadband: the difference is the repeated activations it removes.
+    plain, _ = detect(derived, ref_end, deadband=NO_DEADBAND)
+    alarms = {
+        "settings": {"percentile": PERCENTILE, "conditioning": "load_ambient", "on_delay_hours": ON_DELAY_HOURS,
+                     "off_delay_hours": OFF_DELAY_HOURS, "deadband": DEADBAND},
+        "after_reference": alarm_kpis(d, d.t >= ref_end),
+        "after_reference_without_deadband": alarm_kpis(plain, plain.t >= ref_end),
+        "normal_operation": alarm_kpis(d, normal),
+    }
     raw_measurements = source[source.record_type == "measurement"]
     summary = {
         "synthetic_only": True, "seed": truth["seed"], "reference_end_exclusive": ref_end.isoformat(),
@@ -244,7 +256,7 @@ def analyze(root, figures=True):
         "sensor_flat_hours": int(d.sensor_flat.sum()), "reference_cells": len(cells),
         "generating_hours_without_reference": int((d.steady_generation & d.reference_count.eq(0)).sum()),
         "events_total": len(events), "events_detected": sum(e["detected"] for e in events),
-        "periods": summaries, "events": events,
+        "periods": summaries, "events": events, "alarms": alarms,
     }
     reports = root / "reports"
     reports.mkdir(parents=True, exist_ok=True)
@@ -263,12 +275,18 @@ def write_report(root, s):
     def number(value, digits=2):
         return "—" if value is None else f"{value:.{digits}f}"
     periods = "\n".join(
-        f"| {p['period']} | {p['eligible_hours']} | {number(p['winding_rise_c_median'])} | {number(p['current_spread_pct_median'])} | {number(p['current_spread_pct_p99'])} | {number(p['voltage_spread_pct_median'])} | {p['alert_activations']} |"
+        f"| {p['period']} | {p['eligible_hours']} | {number(p['winding_rise_c_median'])} | {number(p['current_spread_pct_median'])} | {number(p['current_spread_pct_p99'])} | {number(p['voltage_spread_pct_median'])} | {p['alarm_high_hours']} |"
         for p in s["periods"]
     )
     events = "\n".join(
-        f"| {e['id']} | {e['trip_time'].replace('T', ' ')[:16]} | {e['ramp_hours']} | {e['severity']:.2f} | {e['winding_rise_delta_c']:.1f} | {e['current_spread_delta_pct']:.1f} | {'sí' if e['detected'] else 'no'} | {number(e['lead_hours'], 0)} |"
+        f"| {e['id']} | {e['trip_time'].replace('T', ' ')[:16]} | {e['ramp_hours']} | {e['severity']:.2f} | {e['winding_rise_delta_c']:.1f} | {e['current_spread_delta_pct']:.1f} | {'sí' if e['detected'] else 'no'} | {number(e['lead_hours'], 0)} | {number(e['lead_hours_any_priority'], 0)} |"
         for e in s["events"]
+    )
+    a = s["alarms"]
+    setting, kpi, plain = a["settings"], a["after_reference"], a["after_reference_without_deadband"]
+    points = "\n".join(
+        f"| `{p['tag']}` | {p['description']} | {p['priority']} | {p['activations']} | {number(p['activations_per_1000h'])} | {number(p['median_duration_hours'], 0)} | {p['fleeting']} | {p['stale']} | {p['repeats']} |"
+        for p in kpi["points"]
     )
     report = f"""# Análisis de una unidad hidroeléctrica sintética
 
@@ -282,26 +300,46 @@ y {s['measurement_hours_missing']} horas sin medición. No se interpola ni se de
 ({s['selected_measurements']} mediciones) excluye las horas ambiguas y los eventos, y el archivo procesado queda intacto.
 Una lectura congelada del cojinete B ({s['sensor_flat_hours']} horas idénticas seguidas) excluye esas horas de la comparación.
 
-## Referencia y regla de alerta
+## Referencia y umbrales
 
 - Generación estable: potencia, corriente, tensión y frecuencia positivas en la hora actual y las tres anteriores.
 - Referencia: los primeros 180 días, sin episodios de degradación. Se agrupa por bandas de potencia
   ({'–'.join(str(v) for v in LOAD_EDGES)} kW) y de ambiente ({'–'.join(str(v) for v in AMBIENT_EDGES)} °C), con al menos
   30 observaciones por celda: {s['reference_cells']} celdas admitidas, {s['generating_hours_without_reference']} horas sin soporte.
 - Indicadores: elevación térmica = media de devanados − ambiente; dispersión = 100 × (máx − mín) / media de las tres fases.
-- Alerta: ambos indicadores por encima del P99 de su celda durante tres horas seguidas.
+- Umbral: percentil {setting['percentile']} del indicador en su celda de referencia.
 
-| Período | Horas elegibles | Elevación térmica mediana °C | Dispersión de corriente mediana % | Dispersión de corriente P99 % | Dispersión de tensión mediana % | Activaciones de alerta |
+| Período | Horas elegibles | Elevación térmica mediana °C | Dispersión de corriente mediana % | Dispersión de corriente P99 % | Dispersión de tensión mediana % | Horas con alarma alta |
 |---|---:|---:|---:|---:|---:|---:|
 {periods}
+
+## Alarmas
+
+La lógica usa los conceptos de gestión de alarmas de ISA-18.2, adaptados a datos horarios:
+
+- **Retardo de activación**: {setting['on_delay_hours']} horas seguidas sobre el umbral.
+- **Banda muerta**: la alarma se repone al bajar de umbral − {setting['deadband']['winding_rise_c']} °C (térmica)
+  o umbral − {setting['deadband']['current_spread_pct']} pp (dispersión), para que no oscile alrededor del umbral.
+- **Prioridad**: baja si un solo indicador está en alarma; alta si ambos lo están a la vez.
+
+Desde el fin de la referencia ({kpi['eligible_hours']} horas elegibles, episodios incluidos):
+
+| Tag | Alarma | Prioridad | Activaciones | Por 1000 h | Duración mediana h | Fugaces (≤ 2 h) | Persistentes (≥ 24 h) | Reactivaciones (≤ 6 h) |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+{points}
+
+Sin banda muerta, las mismas alarmas se activan {plain['activations']} veces y se reactivan {plain['repeats']} veces
+en menos de 6 h; con banda muerta, {kpi['activations']} y {kpi['repeats']}.
+Fuera de los episodios hay {a['normal_operation']['activations']} activaciones en {a['normal_operation']['eligible_hours']} horas
+({a['normal_operation']['activations_by_priority']['alta']} de prioridad alta).
 
 ## Episodios de degradación del año demo
 
 El generador sortea el momento y el tamaño de cada episodio; la regla no los conoce.
-Se detectan {s['events_detected']} de {s['events_total']}.
+La alarma de prioridad alta detecta {s['events_detected']} de {s['events_total']}.
 
-| Evento | Disparo | Rampa h | Severidad | Δ térmico °C | Δ dispersión pp | Detectado | Anticipación h |
-|---:|---|---:|---:|---:|---:|---|---:|
+| Evento | Disparo | Rampa h | Severidad | Δ térmico °C | Δ dispersión pp | Detectado | Anticipación h (alta) | Anticipación h (cualquiera) |
+|---:|---|---:|---:|---:|---:|---|---:|---:|
 {events}
 
 Los incrementos (Δ) son los valores alcanzados al final de la rampa. Un año no basta para estimar tasas.

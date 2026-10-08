@@ -106,7 +106,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(self.analysis["events_detected"], sum(e["detected"] for e in scored))
         for event in scored:
             self.assertLessEqual(event["eligible_hours"], event["ramp_hours"])
-            self.assertEqual(event["detected"], event["persistent_alert_hours"] > 0)
+            self.assertEqual(event["detected"], event["alarm_high_hours"] > 0)
             if event["detected"]:
                 # The first alert lies inside the ramp, never at or after the trip.
                 self.assertGreater(event["lead_hours"], 0)
@@ -118,6 +118,17 @@ class PipelineTests(unittest.TestCase):
         self.assertLess(periods["normal_operation"]["available_hours"],
                         HOURS - REFERENCE_HOURS - sum(e["ramp_hours"] for e in scored))
         self.assertEqual(self.analysis["sensor_flat_hours"], 18)
+
+    def test_alarm_summary_is_consistent(self):
+        alarms = self.analysis["alarms"]
+        held, plain = alarms["after_reference"], alarms["after_reference_without_deadband"]
+        self.assertEqual(held["eligible_hours"], plain["eligible_hours"])
+        self.assertLessEqual(held["activations"], plain["activations"])
+        self.assertEqual(held["activations"], sum(held["activations_by_priority"].values()))
+        self.assertLessEqual(alarms["normal_operation"]["activations"], held["activations"])
+        high = next(p for p in held["points"] if p["priority"] == "alta")
+        self.assertEqual(high["activations"] > 0, self.analysis["events_detected"] > 0 or
+                         alarms["normal_operation"]["activations_by_priority"]["alta"] > 0)
 
     def test_future_values_cannot_change_reference(self):
         frame = pd.read_csv(self.root / "data/processed/scada.csv")

@@ -29,10 +29,10 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual(max(hours), -1)
             self.assertGreaterEqual(min(hours), -event["ramp_hours"] - 24)
             ramp = [row for row in event["timeline"] if row["hours_to_trip"] >= -event["ramp_hours"]]
-            self.assertEqual(sum(row["persistent_alert"] for row in ramp), event["persistent_alert_hours"])
+            self.assertEqual(sum(row["alarm_high"] for row in ramp), event["alarm_high_hours"])
             self.assertEqual(sum(row["eligible"] for row in ramp), event["eligible_hours"])
             if event["detected"]:
-                first = min(row["hours_to_trip"] for row in ramp if row["persistent_alert"])
+                first = min(row["hours_to_trip"] for row in ramp if row["alarm_high"])
                 self.assertEqual(-first, event["lead_hours"])
 
     def test_coverage_sensor_and_conservation(self):
