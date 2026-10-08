@@ -15,7 +15,8 @@ ALARM_POINTS = [
 # Deadband in indicator units: an active alarm clears only below threshold - deadband.
 DEADBAND = {"winding_rise_c": 1.0, "current_spread_pct": .4}
 NO_DEADBAND = dict.fromkeys(DEADBAND, 0.0)
-ON_DELAY_HOURS, OFF_DELAY_HOURS = 3, 1
+# On-delay chosen on the calibration seeds (src/evaluate.py); a test keeps it in step.
+ON_DELAY_HOURS, OFF_DELAY_HOURS = 2, 1
 FLEETING_MAX_HOURS, STALE_MIN_HOURS, REPEAT_WITHIN_HOURS = 2, 24, 6
 
 

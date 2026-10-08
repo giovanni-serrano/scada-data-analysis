@@ -16,7 +16,8 @@ METRICS = ["winding_rise_c", "current_spread_pct", "voltage_spread_pct"]
 LABELS = ["Elevación térmica (°C)", "Dispersión de corriente (%)", "Dispersión de tensión (%)"]
 LOAD_EDGES = [0, 200, 300, 400, 500, 600, 700, 900]
 AMBIENT_EDGES = [10, 26.5, 29.5, 45]
-PERCENTILE = 99
+# Threshold percentile chosen on the calibration seeds (src/evaluate.py); a test keeps it in step.
+PERCENTILE = 95
 # What a threshold is conditioned on; "none" is the fixed-threshold baseline.
 CONDITIONING = {"load_ambient": ["load_bin", "ambient_bin"], "load": ["load_bin"], "none": []}
 # Same roles and values as the dashboard tokens in docs/styles.css.
@@ -176,7 +177,7 @@ def make_figures(d, ref_end, truth, root):
         for row, (metric, label) in enumerate(zip(METRICS[:2], LABELS[:2])):
             ax = axes[row][column]
             ax.plot(hours, view[metric].where(view.eligible), color=SERIES, lw=1.4, label="Indicador")
-            ax.plot(hours, view[metric + "_threshold"].where(view.eligible), color=CONTEXT, lw=1.2, ls="--", label="Umbral P99 de su celda")
+            ax.plot(hours, view[metric + "_threshold"].where(view.eligible), color=CONTEXT, lw=1.2, ls="--", label=f"Umbral P{PERCENTILE} de su celda")
             alerts = view.alarm_high.to_numpy()
             ax.scatter(hours[alerts], view[metric][alerts], color=ALERT, s=14, zorder=3, label="Alarma de prioridad alta")
             ax.axvline(-event["ramp_hours"], color=CONTEXT, lw=.8, ls=":")
@@ -273,13 +274,13 @@ def analyze(root, figures=True):
 def write_report(root, s):
     q = json.loads((root / "reports/quality_summary.json").read_text(encoding="utf-8"))
     def number(value, digits=2):
-        return "—" if value is None else f"{value:.{digits}f}"
+        return "—" if value is None else f"{value:.{digits}f}".replace(".", ",")
     periods = "\n".join(
         f"| {p['period']} | {p['eligible_hours']} | {number(p['winding_rise_c_median'])} | {number(p['current_spread_pct_median'])} | {number(p['current_spread_pct_p99'])} | {number(p['voltage_spread_pct_median'])} | {p['alarm_high_hours']} |"
         for p in s["periods"]
     )
     events = "\n".join(
-        f"| {e['id']} | {e['trip_time'].replace('T', ' ')[:16]} | {e['ramp_hours']} | {e['severity']:.2f} | {e['winding_rise_delta_c']:.1f} | {e['current_spread_delta_pct']:.1f} | {'sí' if e['detected'] else 'no'} | {number(e['lead_hours'], 0)} | {number(e['lead_hours_any_priority'], 0)} |"
+        f"| {e['id']} | {e['trip_time'].replace('T', ' ')[:16]} | {e['ramp_hours']} | {number(e['severity'])} | {number(e['winding_rise_delta_c'], 1)} | {number(e['current_spread_delta_pct'], 1)} | {'sí' if e['detected'] else 'no'} | {number(e['lead_hours'], 0)} | {number(e['lead_hours_any_priority'], 0)} |"
         for e in s["events"]
     )
     a = s["alarms"]
@@ -304,7 +305,7 @@ Una lectura congelada del cojinete B ({s['sensor_flat_hours']} horas idénticas 
 
 - Generación estable: potencia, corriente, tensión y frecuencia positivas en la hora actual y las tres anteriores.
 - Referencia: los primeros 180 días, sin episodios de degradación. Se agrupa por bandas de potencia
-  ({'–'.join(str(v) for v in LOAD_EDGES)} kW) y de ambiente ({'–'.join(str(v) for v in AMBIENT_EDGES)} °C), con al menos
+  ({'–'.join(str(v) for v in LOAD_EDGES)} kW) y de ambiente ({'–'.join(str(v).replace('.', ',') for v in AMBIENT_EDGES)} °C), con al menos
   30 observaciones por celda: {s['reference_cells']} celdas admitidas, {s['generating_hours_without_reference']} horas sin soporte.
 - Indicadores: elevación térmica = media de devanados − ambiente; dispersión = 100 × (máx − mín) / media de las tres fases.
 - Umbral: percentil {setting['percentile']} del indicador en su celda de referencia.
@@ -318,8 +319,8 @@ Una lectura congelada del cojinete B ({s['sensor_flat_hours']} horas idénticas 
 La lógica usa los conceptos de gestión de alarmas de ISA-18.2, adaptados a datos horarios:
 
 - **Retardo de activación**: {setting['on_delay_hours']} horas seguidas sobre el umbral.
-- **Banda muerta**: la alarma se repone al bajar de umbral − {setting['deadband']['winding_rise_c']} °C (térmica)
-  o umbral − {setting['deadband']['current_spread_pct']} pp (dispersión), para que no oscile alrededor del umbral.
+- **Banda muerta**: la alarma se repone al bajar de umbral − {number(setting['deadband']['winding_rise_c'], 1)} °C (térmica)
+  o umbral − {number(setting['deadband']['current_spread_pct'], 1)} pp (dispersión), para que no oscile alrededor del umbral.
 - **Prioridad**: baja si un solo indicador está en alarma; alta si ambos lo están a la vez.
 
 Desde el fin de la referencia ({kpi['eligible_hours']} horas elegibles, episodios incluidos):
@@ -337,12 +338,13 @@ Fuera de los episodios hay {a['normal_operation']['activations']} activaciones e
 
 El generador sortea el momento y el tamaño de cada episodio; la regla no los conoce.
 La alarma de prioridad alta detecta {s['events_detected']} de {s['events_total']}.
+El percentil y el retardo se fijaron con otras semillas; el desempeño sobre 100 años está en [evaluation.md](evaluation.md).
 
 | Evento | Disparo | Rampa h | Severidad | Δ térmico °C | Δ dispersión pp | Detectado | Anticipación h (alta) | Anticipación h (cualquiera) |
 |---:|---|---:|---:|---:|---:|---|---:|---:|
 {events}
 
-Los incrementos (Δ) son los valores alcanzados al final de la rampa. Un año no basta para estimar tasas.
+Los incrementos (Δ) son los valores alcanzados al final de la rampa.
 
 ## Figuras
 
