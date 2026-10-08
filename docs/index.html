@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Análisis de señales SCADA de una unidad hidroeléctrica simulada: calidad de registros, alarmas y evaluación ciega de su desempeño.">
+  <meta name="description" content="Caso de estudio: ¿pueden los datos SCADA de una unidad hidroeléctrica avisar de un calentamiento anormal antes de un disparo?">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-src 'none'">
   <title>SCADA | Explorador de señales</title>
   <link rel="icon" href="data:,">
@@ -38,77 +38,91 @@
   <section id="resumen" role="tabpanel" aria-labelledby="tab-resumen">
     <div class="hero">
       <div>
-        <p class="eyebrow">Datos SCADA · Python · Ingeniería eléctrica</p>
-        <h1>¿Cuánto antes de un disparo puede avisar una alarma, y con qué frecuencia acierta?</h1>
-        <p class="lead">Un año de mediciones horarias de una unidad hidroeléctrica simulada: 20 señales, registros con defectos y episodios de degradación que aparecen en momentos sorteados. La regla de alarma se ajusta con unos años y se mide con otros que no ha visto.</p>
+        <p class="eyebrow">Caso de estudio · Monitoreo de condición con datos SCADA</p>
+        <h1>¿Podían los datos del SCADA avisar antes de que se dañara el generador?</h1>
+        <p class="lead">Mi primer acercamiento a un fallo real fue en las visitas de familiarización a una central hidroeléctrica: un generador salió de servicio con los devanados del rotor gravemente dañados. Este proyecto pone a prueba una idea sencilla: comparar cada hora con horas parecidas para notar un calentamiento anormal antes del disparo.</p>
       </div>
-      <aside class="case-note">
-        <span class="small-label">El caso de estudio</span>
-        <dl class="metrics" id="summary-metrics">
-          <div><dt>Señales con tag</dt><dd id="signal-count">—</dd></div>
-          <div><dt>Registros del año demo</dt><dd id="record-count">—</dd></div>
-          <div><dt>Años simulados para evaluar</dt><dd id="eval-years">—</dd></div>
-          <div><dt>Episodios evaluados</dt><dd id="eval-events">—</dd></div>
+      <aside class="case-note" aria-labelledby="results-title">
+        <span class="small-label" id="results-title">Lo que encontré</span>
+        <dl class="results">
+          <div><dt id="result-detection">—</dt><dd id="result-detection-note">—</dd></div>
+          <div><dt id="result-false">—</dt><dd id="result-false-note">—</dd></div>
+          <div><dt id="result-lead">—</dt><dd id="result-lead-note">—</dd></div>
         </dl>
-        <span class="small-label">Resultado</span>
-        <p id="headline">—</p>
+        <p class="basis" id="result-basis">—</p>
       </aside>
     </div>
     <div class="editorial-row">
       <div>
-        <p class="number">01 / Señales</p>
-        <h2>Las señales siguen a la carga, con ruido.</h2>
-        <p>La corriente crece con la potencia, pero no sobre una línea: la tensión y el factor de potencia varían, cada instrumento tiene su error y las tres fases no son idénticas.</p>
-        <button class="text-link" data-go="variables">Explorar las variables <span aria-hidden="true">→</span></button>
+        <p class="number">01 / El problema real</p>
+        <h2>Un daño grave y varias causas posibles.</h2>
+        <p>El informe encontró fallas a tierra, espiras en cortocircuito y aislamiento deteriorado, pero no pudo decir qué lo causó: ¿sobrecarga, calor, refrigeración obstruida, sobreexcitación? Me quedé con una pregunta: ¿el SCADA, que registra la unidad cada hora, podía haber avisado antes?</p>
       </div>
       <figure class="panel">
-        <figcaption>Potencia activa y corriente media · 14 días de referencia</figcaption>
-        <div class="mini-chart" id="overview-load" role="img" aria-label="Potencia activa frente a corriente media en catorce días de referencia"></div>
+        <figcaption>Causas que dejó abiertas el informe, y qué puede decir de ellas este método</figcaption>
+        <ul class="hypotheses">
+          <li><span>Sobrecarga</span><span class="verdict rules-out">La descarta</span></li>
+          <li><span>Ambiente caluroso</span><span class="verdict rules-out">La descarta</span></li>
+          <li><span>Refrigeración obstruida</span><span class="verdict points">La señala</span></li>
+          <li><span>Espiras en cortocircuito</span><span class="verdict partial">Indirectamente</span></li>
+          <li><span>Sobreexcitación</span><span class="verdict blind">Todavía no</span></li>
+          <li><span>Falla a tierra</span><span class="verdict blind">No la ve</span></li>
+        </ul>
+        <p class="hint">Si el devanado está caliente <em>para esa carga y ese ambiente</em>, la carga y el ambiente no bastan para explicarlo.</p>
       </figure>
     </div>
     <div class="editorial-row">
       <div>
-        <p class="number">02 / Calidad</p>
-        <h2>Antes de analizar, validar los registros.</h2>
-        <p>Una hora faltante, una medición contradictoria o un sensor congelado cambian la interpretación. Cada fila se conserva con su procedencia; solo las horas sin ambigüedad entran en la comparación.</p>
-        <button class="text-link" data-go="calidad">Ver la calidad de los datos <span aria-hidden="true">→</span></button>
+        <p class="number">02 / Por qué es difícil</p>
+        <h2>La temperatura sube con la carga.</h2>
+        <p>Es como la fiebre: 37,8 °C no significa lo mismo después de correr que en reposo. Un umbral fijo o suena a plena carga sin que pase nada, o no ve un calentamiento anormal a media carga. Y una falla empieza pequeña, escondida en el ruido de las mediciones.</p>
       </div>
       <figure class="panel">
-        <figcaption>Horas seleccionadas por día · año demo</figcaption>
-        <div class="mini-chart" id="overview-quality" role="img" aria-label="Conteo diario de horas seleccionadas sin ambigüedad"></div>
+        <figcaption>Temperatura del devanado frente a potencia · 14 días sin fallas</figcaption>
+        <div class="mini-chart" id="overview-thermal" role="img" aria-label="Temperatura media del devanado frente a potencia activa en catorce días sin fallas: la temperatura crece con la carga"></div>
       </figure>
     </div>
     <div class="editorial-row">
       <div>
-        <p class="number">03 / Alarmas</p>
-        <h2>Un umbral necesita contexto.</h2>
-        <p>La temperatura de un devanado depende de la carga. Comparar cada hora con horas de carga y ambiente parecidos permite ver cambios pequeños, con retardo, banda muerta y prioridad como en un sistema de alarmas.</p>
-        <button class="text-link" data-go="alarmas">Ver las alarmas del año demo <span aria-hidden="true">→</span></button>
+        <p class="number">03 / Qué hice</p>
+        <h2>Comparar cada hora con horas parecidas.</h2>
+        <ol class="steps">
+          <li><strong>Datos parecidos, pero no iguales.</strong> No puedo publicar los de la planta, así que simulé años de SCADA con fallas que crecen hasta un disparo. Así sé cuándo empieza cada una.</li>
+          <li><strong>Registros revisados.</strong> Horas faltantes, duplicadas o con un sensor congelado se marcan y no entran en la estadística.</li>
+          <li><strong>Un umbral para cada carga y ambiente</strong>, aprendido de los meses sin fallas, con retardo, histéresis y dos prioridades como en una sala de control.</li>
+          <li><strong>Medido en años que la regla nunca vio.</strong></li>
+        </ol>
+        <button class="text-link" data-go="alarmas">Ver cómo suena la alarma en cada episodio <span aria-hidden="true">→</span></button>
       </div>
       <figure class="panel">
-        <figcaption id="overview-event-caption">Dispersión de corriente antes de un disparo</figcaption>
+        <figcaption id="overview-event-caption">Elevación térmica antes de un disparo</figcaption>
         <div class="key" role="group" aria-label="Series mostradas">
-          <span class="key-item"><span class="swatch line c-series" aria-hidden="true"></span>Indicador</span>
-          <span class="key-item"><span class="swatch line dash c-context" aria-hidden="true"></span>Umbral</span>
+          <span class="key-item"><span class="swatch line c-series" aria-hidden="true"></span>Elevación térmica</span>
+          <span class="key-item"><span class="swatch line dash c-context" aria-hidden="true"></span>Umbral para esa carga y ambiente</span>
+          <span class="key-item"><span class="swatch diamond fill c-alert" aria-hidden="true"></span>Alarma alta</span>
         </div>
-        <div class="mini-chart" id="overview-event" role="img" aria-label="Dispersión de corriente y su umbral en las horas previas a un disparo"></div>
+        <div class="mini-chart" id="overview-event" role="img" aria-label="Elevación térmica y su umbral en las horas previas a un disparo, con las horas en alarma alta"></div>
       </figure>
     </div>
     <div class="editorial-row">
       <div>
-        <p class="number">04 / Evaluación</p>
-        <h2>Medir en años que la regla no vio.</h2>
-        <p>El percentil y el retardo se eligen con 20 años simulados. El desempeño se mide una vez en otros 100, con intervalos de confianza y contra un umbral fijo como línea base.</p>
-        <button class="text-link" data-go="evaluacion">Ver la evaluación <span aria-hidden="true">→</span></button>
+        <p class="number">04 / Qué encontré</p>
+        <h2>Las fallas pequeñas son las que se escapan.</h2>
+        <p id="findings-detail">—</p>
+        <button class="text-link" data-go="evaluacion">Ver la evaluación completa <span aria-hidden="true">→</span></button>
       </div>
       <figure class="panel">
-        <figcaption>Episodios detectados según su severidad</figcaption>
+        <figcaption>Fallas detectadas según su tamaño</figcaption>
         <div class="key" role="group" aria-label="Series mostradas">
-          <span class="key-item"><span class="swatch circle fill c-a" aria-hidden="true"></span>Condicionado por carga y ambiente</span>
+          <span class="key-item"><span class="swatch circle fill c-a" aria-hidden="true"></span>Umbral según carga y ambiente</span>
           <span class="key-item"><span class="swatch square fill c-b" aria-hidden="true"></span>Umbral fijo</span>
         </div>
-        <div class="mini-chart" id="overview-eval" role="img" aria-label="Porcentaje de episodios detectados por tramo de severidad, con y sin condicionar el umbral"></div>
+        <div class="mini-chart" id="overview-eval" role="img" aria-label="Porcentaje de fallas detectadas por tramo de tamaño, con y sin condicionar el umbral"></div>
       </figure>
+    </div>
+    <div class="reading closing">
+      <div class="limits scope-note"><h2>Limitaciones</h2><p>Los datos son simulados y la forma de la falla la definí yo: una rampa de pocos días, cuando un daño como el de la planta tarda meses. El fallo real fue en el rotor y aquí uso señales del estator como indicio indirecto: una falla a tierra casi no se vería. Las cifras valen para este escenario; en una unidad real habría que repetir la medición con sus datos.</p></div>
+      <div><h2>Qué sigue</h2><ul class="next"><li>Usar la potencia reactiva para separar la sobreexcitación.</li><li>Simular señales del rotor (corriente de campo, vibración) y contar arranques y paradas.</li><li>Repetir la evaluación con datos reales que tengan fallas registradas.</li></ul><button class="text-link" data-go="metodologia">Metodología y glosario <span aria-hidden="true">→</span></button></div>
     </div>
   </section>
 
@@ -316,6 +330,14 @@
       <div><h2>Comparar condiciones similares</h2><p>La referencia son los primeros 180 días de cada año. Se divide en bandas de potencia y de temperatura ambiente, con un mínimo de 30 observaciones por celda. El umbral de cada indicador es un percentil de su celda; sin referencia suficiente no hay umbral.</p><details><summary>Indicadores</summary><p>Elevación térmica = media de las temperaturas de devanado − ambiente.</p><p>Dispersión entre fases = 100 × (máximo − mínimo) / media. Es un indicador descriptivo, distinto del desbalance de secuencia negativa de las normas.</p></details></div>
       <div><h2>Herramientas</h2><p>Python, NumPy, pandas y Matplotlib generan y analizan los datos. Las pruebas automatizadas cubren reproducibilidad, conservación de registros, lógica de alarmas, puntuación de la evaluación y exportación web.</p><p>El sitio usa HTML, CSS, JavaScript y Plotly.js 3.7.0 servido localmente, sin backend ni recursos externos.</p></div>
     </div>
+    <h2 class="subheading">Qué fallas vería este método</h2>
+    <div class="table-scroll"><table class="ledger compact">
+      <caption>Hipótesis del fallo real que motivó el proyecto</caption>
+      <thead><tr><th scope="col">Causa posible</th><th scope="col">Señal que la delataría</th><th scope="col">¿La cubre este proyecto?</th></tr></thead>
+      <tbody><tr><th scope="row">Sobrecarga</th><td>Potencia frente a la nominal</td><td>Sí: la descarta como explicación única</td></tr><tr><th scope="row">Ambiente caluroso</th><td>Temperatura de la sala</td><td>Sí: la descarta como explicación única</td></tr><tr><th scope="row">Refrigeración obstruida</th><td>Temperatura alta para esa carga y ambiente</td><td>Sí: es lo que detecta</td></tr><tr><th scope="row">Espiras en cortocircuito</th><td>Corriente de campo, vibración</td><td>Indirectamente, por la temperatura del estator</td></tr><tr><th scope="row">Sobreexcitación</th><td>Potencia reactiva, corriente de campo</td><td>Todavía no: <code>G1_Q</code> no se usa en el umbral</td></tr><tr><th scope="row">Falla a tierra del rotor</th><td>Relé de falla a tierra, resistencia de aislamiento</td><td>No se ve con estas señales</td></tr></tbody>
+    </table></div>
+    <h2 class="subheading" id="glosario">Glosario</h2>
+    <dl class="definitions glossary"><dt>Celda</dt><dd>Grupo de horas con carga y ambiente parecidos.</dd><dt>Referencia</dt><dd>Los primeros 180 días de cada año, sin fallas: lo que se considera normal.</dd><dt>Percentil 95</dt><dd>Valor que solo el 5 % de las horas normales de una celda supera. Es el umbral de esa celda.</dd><dt>Umbral fijo</dt><dd>Un solo límite para todas las horas. Es la línea base con la que se compara.</dd><dt>Elevación térmica</dt><dd>Temperatura media del devanado menos la temperatura ambiente.</dd><dt>Dispersión de corriente</dt><dd>Diferencia entre la fase más alta y la más baja, en % del promedio.</dd><dt>Retardo de activación</dt><dd>La condición debe durar 2 h antes de anunciar la alarma, como un relé con temporizador.</dd><dt>Banda muerta</dt><dd>Histéresis: la alarma se apaga solo cuando la señal baja claramente del umbral.</dd><dt>Prioridad</dt><dd>Baja si un indicador supera su umbral (informa); alta si lo superan los dos a la vez (pide acción).</dd><dt>Alarma fugaz</dt><dd>Se apaga sola en 2 h o menos. Muchas fugaces cansan al operador.</dd><dt>Detección</dt><dd>La alarma alta suena entre el inicio de la falla simulada y el disparo.</dd><dt>Falsa alarma</dt><dd>La alarma alta suena cuando no hay ninguna falla en curso.</dd><dt>Falsas alarmas por 1000 h</dt><dd>Cuántas hay por cada 1000 h de operación normal. Un año tiene 8760 h.</dd><dt>Anticipación</dt><dd>Horas entre la primera alarma alta y el disparo.</dd><dt>Calibración y evaluación</dt><dd>Unos años simulados para elegir la configuración y otros, distintos, para medirla una sola vez.</dd><dt>Intervalo de confianza del 95 %</dt><dd>Rango en el que probablemente estaría el resultado si se repitiera con otros años.</dd></dl>
     <h2 class="subheading">Reproducir</h2>
     <pre><code>python -B run_pipeline.py --output-dir runs/demo
 python -B run_evaluation.py --output-dir runs/demo
@@ -323,9 +345,8 @@ python -B export_dashboard.py --source-root runs/demo
 python -B -m unittest discover
 python -B -m http.server 8000 --bind 127.0.0.1 --directory docs</code></pre>
     <p>Con las dependencias de <code>requirements.txt</code> instaladas, abre <code>http://127.0.0.1:8000/</code>. Usa una carpeta de salida nueva en cada ejecución.</p>
-    <div class="reading">
+    <div class="reading single">
       <div><h2>Desarrollo asistido por IA</h2><p>Proyecto personal desarrollado con asistencia de herramientas de inteligencia artificial (Codex y Claude Code) en programación, revisión y documentación. Los resultados salen de un procedimiento reproducible con pruebas automatizadas.</p></div>
-      <div class="limits scope-note"><h2>Alcance</h2><p>Todos los datos son sintéticos: salen de un generador con ecuaciones simples y semillas fijas, no de una planta. La evaluación es ciega respecto al momento y al tamaño de cada episodio, pero el mismo autor diseñó el generador y el detector, y el tipo de degradación (una rampa lineal) es conocido. Los porcentajes describen este escenario; en una unidad real habría que repetir la medición con sus propios datos.</p></div>
     </div>
     <a class="repository-link" href="https://github.com/giovanni-serrano/scada-data-analysis" rel="noreferrer">Código, pruebas e informes en GitHub <span aria-hidden="true">↗</span></a>
   </section>
