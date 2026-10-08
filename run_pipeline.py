@@ -22,7 +22,7 @@ def run(root, figures=True):
     quality = build(root)
     result = analyze(root, figures=figures)
     verify(root)
-    print(f"Completed: {quality['rows']} preserved rows; synthetic change detected={result['synthetic_change_detected']}.")
+    print(f"Completed: {quality["rows"]} preserved rows; {result["events_detected"]} of {result["events_total"]} synthetic events detected.")
     return result
 
 

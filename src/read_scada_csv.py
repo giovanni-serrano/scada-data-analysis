@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from .common import RAW_FIELDS, SIGNALS, write_csv
+from .common import RAW_FIELDS, TAGS, write_csv
 from .file_inventory import verify
 
 META = ["source_file", "source_line", "nominal_date", "timestamp", "date_mismatch", "backward_timestamp"]
@@ -27,14 +27,14 @@ def read_records(root):
                 stamp = datetime.strptime(row["date"] + "T" + row["time"], "%Y-%m-%dT%H:%M:%S")
                 if row["record_type"] == "measurement":
                     try:
-                        if any(not Decimal(row[key]).is_finite() for key in SIGNALS):
+                        if any(not Decimal(row[key]).is_finite() for key in TAGS):
                             raise ValueError("Non-finite measurement")
                     except InvalidOperation as error:
                         raise ValueError(f"Invalid number: {source}:{reader.line_num}") from error
                     if row["event_message"]:
                         raise ValueError("Measurement carries an event message")
                 elif row["record_type"] == "event":
-                    if any(row[key] for key in SIGNALS) or not row["event_message"]:
+                    if any(row[key] for key in TAGS) or not row["event_message"]:
                         raise ValueError("Event must contain a message and empty measurements")
                 else:
                     raise ValueError("Unknown record type")

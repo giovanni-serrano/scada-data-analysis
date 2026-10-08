@@ -1,86 +1,51 @@
-# Análisis de una unidad hidroeléctrica ficticia
+# Análisis de una unidad hidroeléctrica sintética
 
-Todos los datos de este informe son completamente sintéticos y educativos.
-El evento `2042-11-18T20:00:00` y sus señales previas se inyectaron artificialmente.
-No representan un mecanismo físico de fallo validado.
+Año demo generado con la semilla 781. Los datos son sintéticos.
 
 ## Calidad y conservación
 
-Se conservan 8759 filas: 8754 mediciones y 5 eventos.
-Hay 7 horas con mediciones alternativas, 9 registros adelantados dos segundos
-y 13 horas sin medición. Los eventos no rellenan mediciones faltantes.
-La selección estadística contiene 8740 mediciones, sin modificar processed.
-Se excluyen de esa selección todas las alternativas de horas ambiguas y los eventos.
-Las observaciones a hasta tres segundos antes de la hora reciben hora lógica derivada;
-la fecha y hora originales permanecen intactas. No hay interpolación ni deduplicación.
-La meseta exacta de un sensor comprende 18 horas. Es una bandera retrospectiva
-de calidad (mínimo seis horas contiguas), no evidencia de una avería térmica.
+Se conservan 8762 filas: 8754 mediciones y 8 eventos.
+Hay 7 horas con mediciones contradictorias, 9 registros adelantados dos segundos
+y 13 horas sin medición. No se interpola ni se deduplica: la selección estadística
+(8740 mediciones) excluye las horas ambiguas y los eventos, y el archivo procesado queda intacto.
+Una lectura congelada del cojinete B (18 horas idénticas seguidas) excluye esas horas de la comparación.
 
-## Referencia y comparación
+## Referencia y regla de alerta
 
-Estados: generación cuando potencia, corriente, tensión y frecuencia son positivas;
-parada cuando las cuatro son cero; combinaciones restantes son intermedias.
-Se requieren la observación actual y tres horas previas consecutivas en generación.
-Las primeras 240 jornadas forman la referencia, cerrada antes del cambio artificial.
-Se usan cuatro bandas de potencia (0–200–400–600–900 kW) y tres de ambiente
-(10–18–26–40 °C), con al menos 30 observaciones por celda. Hay 9 celdas admitidas.
-Las horas de generación estable sin soporte histórico son 2.
-Se excluye del análisis comparativo la observación horaria completa cuando se activa
-la bandera de meseta exacta del sensor de cojinete B; no solo su columna.
-También se excluyen las horas sin soporte histórico. Las filas originales permanecen en processed.
+- Generación estable: potencia, corriente, tensión y frecuencia positivas en la hora actual y las tres anteriores.
+- Referencia: los primeros 180 días, sin episodios de degradación. Se agrupa por bandas de potencia
+  (0–200–300–400–500–600–700–900 kW) y de ambiente (10–26.5–29.5–45 °C), con al menos
+  30 observaciones por celda: 16 celdas admitidas, 131 horas sin soporte.
+- Indicadores: elevación térmica = media de devanados − ambiente; dispersión = 100 × (máx − mín) / media de las tres fases.
+- Alerta: ambos indicadores por encima del P99 de su celda durante tres horas seguidas.
 
-Elevación térmica = media de los tres devanados menos ambiente.
-Dispersión de fases = 100 × (máximo − mínimo) / media; no es una medida normativa de secuencia negativa.
-Residual = observado menos mediana de su celda histórica.
-Una alerta requiere elevación térmica y dispersión de corriente superiores a sus P99 históricos
-durante tres observaciones horarias consecutivas. La tensión se utiliza como contexto adicional.
-La regla se calcula sobre todas las observaciones; el calendario del evento solo ancla la evaluación.
-El registro del evento debe coincidir con el manifiesto sintético o el análisis se detiene.
+| Período | Horas elegibles | Elevación térmica mediana °C | Dispersión de corriente mediana % | Dispersión de corriente P99 % | Dispersión de tensión mediana % | Activaciones de alerta |
+|---|---:|---:|---:|---:|---:|---:|
+| reference | 4179 | 24.88 | 1.08 | 2.74 | 0.73 | 0 |
+| normal_operation | 3765 | 24.64 | 1.06 | 2.43 | 0.65 | 0 |
 
-| Período | Horas elegibles/calendario | Residual térmico mediano °C | Dispersión corriente mediana % | Dispersión tensión mediana % | Horas con alerta persistente |
-|---|---:|---:|---:|---:|---:|
-| reference | 5613/5760 | 0.00 | 0.24 | 0.10 | 0 |
-| normal_holdout | 1824/1868 | 0.08 | 0.24 | 0.10 | 0 |
-| pre_event_72h | 72/72 | 6.82 | 11.37 | 0.93 | 31 |
-| pre_event_24h | 24/24 | 11.32 | 15.81 | 1.21 | 21 |
-| pre_event_6h | 6/6 | 17.81 | 17.50 | 1.36 | 6 |
+## Episodios de degradación del año demo
 
-Las ventanas son [evento − duración, evento), se solapan y excluyen la parada en el instante del evento.
-La primera alerta persistente dentro del cambio inyectado aparece en
-`2042-11-17T10:00:00`, con 34.0 horas de antelación.
-Las horas de alerta de referencia y del tramo normal posterior se muestran para contextualizar
-la especificidad de la regla. La referencia es una evaluación dentro de muestra; el tramo normal posterior
-sí queda fuera del ajuste. Las horas sucesivas están correlacionadas y no equivalen a ensayos independientes.
+El generador sortea el momento y el tamaño de cada episodio; la regla no los conoce.
+Se detectan 4 de 4.
 
-## Lectura de las figuras
+| Evento | Disparo | Rampa h | Severidad | Δ térmico °C | Δ dispersión pp | Detectado | Anticipación h |
+|---:|---|---:|---:|---:|---:|---|---:|
+| 1 | 2025-07-22 11:00 | 100 | 0.52 | 5.0 | 2.7 | sí | 5 |
+| 2 | 2025-09-21 11:00 | 113 | 0.93 | 9.7 | 3.5 | sí | 24 |
+| 3 | 2025-10-23 17:00 | 95 | 0.86 | 6.2 | 4.5 | sí | 53 |
+| 4 | 2025-12-12 10:00 | 112 | 0.49 | 3.7 | 1.9 | sí | 18 |
 
-![Relaciones físicas](01_physical_relationships.png)
+Los incrementos (Δ) son los valores alcanzados al final de la rampa. Un año no basta para estimar tasas.
 
-La corriente y la apertura aumentan con la carga por construcción. La temperatura también responde al ambiente
-y a una dinámica de primer orden. Las 72 horas previas muestran una elevación térmica adicional.
+## Figuras
 
-![Comparación condicionada](02_conditioned_history.png)
+![Relaciones con la carga](01_physical_relationships.png)
 
-Las medianas diarias de residuales permiten separar variaciones de carga de cambios persistentes.
-Son agregados de presentación; no sustituyen las observaciones conservadas en processed.
+![Residuales diarios](02_conditioned_history.png)
 
-![Ventanas previas](03_pre_event_windows.png)
-
-Las zonas sombreadas identifican 72, 24 y 6 horas. Las líneas de P99 corresponden a la carga
-y ambiente de cada observación, por lo que pueden cambiar de una hora a otra.
+![Indicadores antes de cada disparo](03_pre_event_windows.png)
 
 ![Calidad y sensor](04_quality_and_sensor.png)
 
-La cobertura muestra horas sin ambigüedad, incluidas las paradas. Su reducción puede deberse a huecos
-o a exclusión de alternativas contradictorias. La meseta pertenece a un problema de sensor inventado.
-
-## Alcance
-
-La detección demuestra trazabilidad y una comparación interpretable en un escenario diseñado para ello.
-No estima precisión en una instalación, causa raíz ni probabilidad de fallo. No hay validación ciega:
-el diseñador conoce las inyecciones. Las bandas discretas, la inercia térmica, el único año y el único evento
-limitan la interpretación. El modelo no reproduce protecciones, transitorios subhorarios, topología eléctrica
-ni mantenimiento. Una evaluación de capacidad predictiva exigiría escenarios independientes y múltiples eventos.
-
-Reproducción y definición del modelo: README.md de la carpeta del proyecto.
-Detalle numérico: `analysis_summary.json`, `historical_reference.csv`, `window_comparison.csv`.
+Detalle numérico: `analysis_summary.json`, `historical_reference.csv`, `period_comparison.csv`, `event_detection.csv`.

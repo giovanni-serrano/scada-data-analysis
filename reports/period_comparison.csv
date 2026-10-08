@@ -1,0 +1,3 @@
+period,start_inclusive,end_exclusive,available_hours,eligible_hours,joint_high_hours,persistent_alert_hours,alert_activations,winding_rise_c_median,winding_rise_c_p99,current_spread_pct_median,current_spread_pct_p99,voltage_spread_pct_median,voltage_spread_pct_p99
+reference,2025-01-01T00:00:00,2025-06-30T00:00:00,4311,4179,0,0,0,24.883599999999998,35.95261466666668,1.081143129038739,2.7379646319212037,0.7251879384936882,1.1565700873244054
+normal_operation,2025-06-30T00:00:00,2026-01-01T00:00:00,3945,3765,1,0,0,24.637300000000003,35.62844266666667,1.0628307812239395,2.4320131373477856,0.649339749082675,1.1491397880237089

@@ -1,9 +1,9 @@
 {
-  "rows": 8759,
+  "rows": 8762,
   "measurements": 8754,
-  "events": 5,
+  "events": 8,
   "measurement_hours": 8747,
   "multiple_hours": 7,
   "shifted_rows": 9,
-  "review_rows": 19
+  "review_rows": 22
 }

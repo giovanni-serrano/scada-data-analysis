@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from .common import SIGNALS, write_csv, write_json
+from .common import TAGS, write_csv, write_json
 
 
 def logical_time(value):
@@ -31,7 +31,7 @@ def build(root):
             logical[row["logical_hour"]].append(i)
     for row in rows:
         ids = logical[row["logical_hour"]] if row["record_type"] == "measurement" else []
-        vectors = {tuple(Decimal(rows[i][key]) for key in SIGNALS) for i in ids}
+        vectors = {tuple(Decimal(rows[i][key]) for key in TAGS) for i in ids}
         row.update(exact_timestamp_multiple=len(exact[row["timestamp"]]) > 1 if ids else False,
                    logical_hour_count=len(ids), logical_hour_multiple=len(ids) > 1,
                    logical_hour_conflict=len(vectors) > 1,

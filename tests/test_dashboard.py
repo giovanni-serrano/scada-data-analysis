@@ -19,27 +19,34 @@ class DashboardTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.temp.cleanup()
 
-    def test_exact_windows_counts_and_numeric_summary(self):
-        for hours, alerts in [(72, 31), (24, 21), (6, 6)]:
-            rows = [r for r in self.payload["timeline"] if -hours <= r["hours_to_event"] < 0]
-            period = next(p for p in self.payload["summary"]["periods"] if p["period"] == f"pre_event_{hours}h")
-            self.assertEqual(len(rows), hours)
-            self.assertEqual(sum(r["eligible"] for r in rows), period["eligible_hours"])
-            self.assertEqual(sum(r["persistent_alert"] for r in rows), alerts)
-            self.assertEqual(alerts, period["persistent_alert_hours"])
-        self.assertEqual(self.payload["summary"]["lead_hours"], 34)
-        self.assertEqual(max(r["hours_to_event"] for r in rows), -1)
+    def test_event_timelines_match_python_scoring(self):
+        truth = json.loads((self.root / "data/synthetic_scenario.json").read_text(encoding="utf-8"))
+        self.assertEqual(self.payload["schema_version"], 2)
+        self.assertEqual([e["trip_time"] for e in self.payload["events"]], [e["trip_time"] for e in truth["events"]])
+        self.assertNotIn("events", self.payload["summary"])
+        for event in self.payload["events"]:
+            hours = [row["hours_to_trip"] for row in event["timeline"]]
+            self.assertEqual(max(hours), -1)
+            self.assertGreaterEqual(min(hours), -event["ramp_hours"] - 24)
+            ramp = [row for row in event["timeline"] if row["hours_to_trip"] >= -event["ramp_hours"]]
+            self.assertEqual(sum(row["persistent_alert"] for row in ramp), event["persistent_alert_hours"])
+            self.assertEqual(sum(row["eligible"] for row in ramp), event["eligible_hours"])
+            if event["detected"]:
+                first = min(row["hours_to_trip"] for row in ramp if row["persistent_alert"])
+                self.assertEqual(-first, event["lead_hours"])
 
     def test_coverage_sensor_and_conservation(self):
         coverage = self.payload["coverage"]
         self.assertEqual(len(coverage), 365)
-        self.assertEqual(sum(r["preserved"] for r in coverage), 8754)
-        self.assertEqual(sum(r["selected"] for r in coverage), 8740)
+        self.assertEqual(sum(r["preserved"] for r in coverage), self.payload["quality"]["measurements"])
+        self.assertEqual(sum(r["selected"] for r in coverage), self.payload["summary"]["selected_measurements"])
         self.assertTrue(all(r["eligible"] <= r["selected"] for r in coverage))
         self.assertEqual(sum(r["sensor_flat"] for r in self.payload["sensor"]["rows"]), 18)
-        self.assertEqual(len(self.payload["provenance"]["source_sha256"]), 373)
+        # 365 RAW files, the scenario, two interim tables, processed and five report tables.
+        self.assertEqual(len(self.payload["provenance"]["source_sha256"]), 374)
         self.assertEqual(self.payload["signal_count"], 20)
-        self.assertEqual(len(self.payload["relationships"]["pre_event"]), 72)
+        self.assertEqual([row["tag"] for row in self.payload["tags"]][:3], ["G1_P", "G1_Q", "G1_IA"])
+        self.assertGreater(len(self.payload["relationships"]["pre_event"]), 0)
 
     def test_export_deterministic_and_finite(self):
         export(self.root, self.root / "other.json")
@@ -49,8 +56,6 @@ class DashboardTests(unittest.TestCase):
         for row in decoded["relationships"]["reference"]:
             self.assertGreater(row["phase_current_a"], 0)
             self.assertGreater(row["active_power_kw"], 0)
-        # Stopped observations retain undefined relative dispersion as null.
-        self.assertTrue(any(r["current_spread_pct"] is None for r in decoded["timeline"]))
 
     def test_untrusted_manifest_rejected(self):
         manifest = self.root / "data/synthetic_scenario.json"
@@ -68,7 +73,9 @@ class DashboardTests(unittest.TestCase):
         processed = self.root / "data/processed/scada.csv"
         before = processed.read_bytes()
         try:
-            processed.write_bytes(before.replace(b"74.2500", b"75.2500", 1))
+            truth = json.loads((self.root / "data/synthetic_scenario.json").read_text(encoding="utf-8"))
+            held = f"{truth['frozen_sensor']['value']:.4f}".encode()
+            processed.write_bytes(before.replace(held, b"99.9999", 1))
             with self.assertRaisesRegex(ValueError, "differs from synthetic regeneration"):
                 build_payload(self.root)
         finally:

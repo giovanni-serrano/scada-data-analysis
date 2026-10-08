@@ -7,15 +7,19 @@ import tempfile
 import pandas as pd
 
 from run_pipeline import run
-from src.analyze_scada import METRICS, apply_reference, derive
-from src.common import SIGNALS, digest
+from src.analyze_scada import METRICS, apply_reference, derive, event_windows
+from src.common import SIGNALS, TAG_CATALOG, digest
+from src.generate_synthetic_scada import SEED
+
+TABLES = ("quality_summary.json", "analysis_summary.json", "historical_reference.csv",
+          "period_comparison.csv", "event_detection.csv")
 
 
 def verify_synthetic(root):
     """Compare every data/table input with a fresh public generation, not a label."""
     root = Path(root)
     truth = json.loads((root / "data/synthetic_scenario.json").read_text(encoding="utf-8"))
-    if truth.get("synthetic_only") is not True or truth.get("seed") != 781:
+    if truth.get("synthetic_only") is not True or truth.get("seed") != SEED:
         raise ValueError("Only the documented synthetic scenario is supported")
     with tempfile.TemporaryDirectory(prefix="scada-export-") as temporary:
         fresh = Path(temporary)
@@ -24,8 +28,7 @@ def verify_synthetic(root):
         actual = sorted(p.relative_to(root) for p in (root / "data").rglob("*") if p.is_file())
         if actual != expected:
             raise ValueError("Synthetic input file set differs from public regeneration")
-        expected += [Path("reports") / name for name in (
-            "quality_summary.json", "analysis_summary.json", "historical_reference.csv", "window_comparison.csv")]
+        expected += [Path("reports") / name for name in TABLES]
         for relative in expected:
             if (root / relative).read_text(encoding="utf-8") != (fresh / relative).read_text(encoding="utf-8"):
                 raise ValueError(f"Input differs from synthetic regeneration: {relative.as_posix()}")
@@ -46,19 +49,21 @@ def build_payload(root):
     review = source.requires_review.astype(str).str.lower().eq("true")
     selected = source[(source.record_type == "measurement") & ~review]
     d, _ = apply_reference(derive(selected), pd.Timestamp(summary["reference_end_exclusive"]))
-    event = pd.Timestamp(truth["synthetic_event_time"])
-    reference_start = pd.Timestamp(truth["start"]) + pd.Timedelta(days=181)
+    reference_start = pd.Timestamp(truth["start"]) + pd.Timedelta(days=150)
     reference_end = reference_start + pd.Timedelta(days=14)
     reference = d[(d.t >= reference_start) & (d.t < reference_end) & d.eligible]
-    recent = d[(d.t >= event - pd.Timedelta(hours=72)) & (d.t < event) & d.eligible]
     relation_columns = ["t", "active_power_kw", "reactive_power_kvar", "phase_current_a", "phase_current_b",
                         "phase_current_c", "mean_current_a", "mean_voltage_v", "room_temperature_c",
                         "winding_temperature_a_c", "winding_temperature_b_c", "winding_temperature_c_c", "winding_rise_c"]
-    timeline = d[(d.t >= event - pd.Timedelta(hours=120)) & (d.t <= event + pd.Timedelta(hours=12))].copy()
-    timeline["hours_to_event"] = (timeline.t - event).dt.total_seconds() / 3600
-    timeline_columns = ["t", "hours_to_event", "eligible", "persistent_alert", "joint_high"]
+    timeline_columns = ["t", "hours_to_trip", "eligible", "persistent_alert", "joint_high"]
     for metric in METRICS:
         timeline_columns += [metric, metric + "_p99"]
+    events, recent = [], []
+    for (start, trip, _, _), scored in zip(event_windows(truth), summary["events"]):
+        timeline = d[(d.t >= start - pd.Timedelta(hours=24)) & (d.t < trip)].copy()
+        timeline["hours_to_trip"] = (timeline.t - trip).dt.total_seconds() / 3600
+        events.append({**scored, "timeline": records(timeline, timeline_columns)})
+        recent.append(d[(d.t >= trip - pd.Timedelta(hours=48)) & (d.t < trip) & d.eligible])
     calendar = pd.date_range(pd.Timestamp(truth["start"]), periods=365, freq="D")
     coverage = pd.DataFrame({"t": calendar})
     coverage["selected"] = d.groupby(d.t.dt.normalize()).size().reindex(calendar, fill_value=0).values
@@ -71,17 +76,18 @@ def build_payload(root):
         raise ValueError("Documented synthetic sensor plateau is missing")
     sensor = d[(d.t >= frozen.t.min() - pd.Timedelta(hours=18)) & (d.t <= frozen.t.max() + pd.Timedelta(hours=18))]
     return {
-        "schema_version": 1, "synthetic_only": True, "seed": truth["seed"], "signal_count": len(SIGNALS),
-        "summary": summary, "quality": quality,
+        "schema_version": 2, "synthetic_only": True, "seed": truth["seed"], "signal_count": len(SIGNALS),
+        "tags": [dict(zip(("tag", "signal", "unit", "description"), row)) for row in TAG_CATALOG],
+        "summary": {key: value for key, value in summary.items() if key != "events"}, "quality": quality,
         "provenance": {"exporter": "export_dashboard.py", "source_sha256": hashes,
-                       "verification": "373 data/table inputs checked against fresh synthetic regeneration",
+                       "verification": f"{len(hashes)} data/table inputs checked against fresh synthetic regeneration",
                        "presentation": "No sampling: all eligible hourly observations in each displayed period; daily coverage is a count."},
         "relationships": {"reference_start": reference_start.isoformat(), "reference_end_exclusive": reference_end.isoformat(),
-                          "reference": records(reference, relation_columns), "pre_event": records(recent, relation_columns)},
+                          "reference": records(reference, relation_columns), "pre_event": records(pd.concat(recent), relation_columns)},
         "coverage": records(coverage, ["t", "preserved", "selected", "eligible"]),
         "sensor": {"start": frozen.t.min().isoformat(), "end_exclusive": (frozen.t.max() + pd.Timedelta(hours=1)).isoformat(),
                    "rows": records(sensor, ["t", "bearing_temperature_a_c", "bearing_temperature_b_c", "room_temperature_c", "sensor_flat"])},
-        "timeline": records(timeline, timeline_columns),
+        "events": events,
         "incidents": {"missing": truth["missing_measurement_hours"], "conflicts": truth["conflicting_duplicate_hours"],
                       "shifted": truth["early_by_two_seconds"], "communication": truth["communication_fault_hours"]},
     }
@@ -102,4 +108,4 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parent / "docs/assets/dashboard-data.json")
     args = parser.parse_args()
     payload = export(args.source_root, args.output)
-    print(f"Web export: {len(payload['timeline'])} timeline observations; {len(payload['coverage'])} daily coverage counts.")
+    print(f"Web export: {len(payload['events'])} events; {len(payload['coverage'])} daily coverage counts.")
