@@ -8,6 +8,7 @@ from export_dashboard import build_payload, export, verified_evaluation
 from run_evaluation import write_outputs
 from run_pipeline import run
 from src.evaluate import evaluate
+from tests.test_docs import REAL_CASE_PHRASES
 
 PROJECT = Path(__file__).resolve().parents[1]
 
@@ -124,6 +125,8 @@ class PublishedSiteTests(unittest.TestCase):
                 self.assertNotIn(outdated, text)
             for hedge in ("no demuestra", "no acredita", "no prueba", "no constituye"):
                 self.assertNotIn(hedge, text)
+            for phrase in REAL_CASE_PHRASES + ("años simulados",):
+                self.assertNotIn(phrase, text.lower())
         self.assertEqual(self.html.count("scope-note"), 1)
         self.assertLessEqual(self.html.lower().count("sintétic"), 3)
         self.assertIn("60 Hz", self.html)

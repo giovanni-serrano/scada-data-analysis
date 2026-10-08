@@ -39,8 +39,8 @@
     <div class="hero">
       <div>
         <p class="eyebrow">Caso de estudio · Monitoreo de condición con datos SCADA</p>
-        <h1>¿Podían los datos del SCADA avisar antes de que se dañara el generador?</h1>
-        <p class="lead">Mi primer acercamiento a un fallo real fue en las visitas de familiarización a una central hidroeléctrica: un generador salió de servicio con los devanados del rotor gravemente dañados. Este proyecto pone a prueba una idea sencilla: comparar cada hora con horas parecidas para notar un calentamiento anormal antes del disparo.</p>
+        <h1>¿Pueden los datos del SCADA avisar antes de que se dañe un generador?</h1>
+        <p class="lead">En centrales hidroeléctricas es común que un generador salga de servicio por daño en los devanados sin que se pueda determinar la causa con certeza. Este proyecto explora si los datos que ya registra el SCADA podrían avisar antes, con una idea sencilla: comparar cada hora con horas parecidas para notar un calentamiento anormal antes del disparo.</p>
       </div>
       <aside class="case-note" aria-labelledby="results-title">
         <span class="small-label" id="results-title">Lo que encontré</span>
@@ -54,12 +54,12 @@
     </div>
     <div class="editorial-row">
       <div>
-        <p class="number">01 / El problema real</p>
+        <p class="number">01 / El problema</p>
         <h2>Un daño grave y varias causas posibles.</h2>
-        <p>El informe encontró fallas a tierra, espiras en cortocircuito y aislamiento deteriorado, pero no pudo decir qué lo causó: ¿sobrecarga, calor, refrigeración obstruida, sobreexcitación? Me quedé con una pregunta: ¿el SCADA, que registra la unidad cada hora, podía haber avisado antes?</p>
+        <p>Cuando un generador sale de servicio por daño en los devanados, a menudo no se puede saber con certeza qué lo causó: ¿sobrecarga, calor, refrigeración deficiente, sobreexcitación? La pregunta es si el SCADA, que registra la unidad cada hora, podría avisar antes y ayudar a descartar algunas causas.</p>
       </div>
       <figure class="panel">
-        <figcaption>Causas que dejó abiertas el informe, y qué puede decir de ellas este método</figcaption>
+        <figcaption>Causas típicas de daño en devanados, y qué puede decir de ellas este método</figcaption>
         <ul class="hypotheses">
           <li><span>Sobrecarga</span><span class="verdict rules-out">La descarta</span></li>
           <li><span>Ambiente caluroso</span><span class="verdict rules-out">La descarta</span></li>
@@ -87,10 +87,10 @@
         <p class="number">03 / Qué hice</p>
         <h2>Comparar cada hora con horas parecidas.</h2>
         <ol class="steps">
-          <li><strong>Datos parecidos, pero no iguales.</strong> No puedo publicar los de la planta, así que simulé años de SCADA con fallas que crecen hasta un disparo. Así sé cuándo empieza cada una.</li>
+          <li><strong>Datos simulados.</strong> Con datos reales casi nunca se sabe cuándo empezó una falla; al simular años de SCADA con fallas que crecen hasta un disparo, conozco el inicio exacto y puedo calificar al detector.</li>
           <li><strong>Registros revisados.</strong> Horas faltantes, duplicadas o con un sensor congelado se marcan y no entran en la estadística.</li>
           <li><strong>Un umbral para cada carga y ambiente</strong>, aprendido de los meses sin fallas, con retardo, histéresis y dos prioridades como en una sala de control.</li>
-          <li><strong>Medido en años que la regla nunca vio.</strong></li>
+          <li><strong>Medido en simulaciones que la regla nunca vio.</strong> Un año trae solo 2 a 4 fallas; hacen falta cientos para que el porcentaje de detección sea confiable, así que se usan muchas simulaciones de un año.</li>
         </ol>
         <button class="text-link" data-go="alarmas">Ver cómo suena la alarma en cada episodio <span aria-hidden="true">→</span></button>
       </div>
@@ -121,7 +121,7 @@
       </figure>
     </div>
     <div class="reading closing">
-      <div class="limits scope-note"><h2>Limitaciones</h2><p>Los datos son simulados y la forma de la falla la definí yo: una rampa de pocos días, cuando un daño como el de la planta tarda meses. El fallo real fue en el rotor y aquí uso señales del estator como indicio indirecto: una falla a tierra casi no se vería. Las cifras valen para este escenario; en una unidad real habría que repetir la medición con sus datos.</p></div>
+      <div class="limits scope-note"><h2>Limitaciones</h2><p>Los datos son simulados y la forma de la falla la definí yo: una rampa de pocos días, cuando los daños reales suelen desarrollarse durante meses. Las señales simuladas son del estator, así que un daño en el rotor solo se vería de forma indirecta y una falla a tierra casi no se vería. Las cifras valen para este escenario; en una unidad real habría que repetir la medición con sus datos.</p></div>
       <div><h2>Qué sigue</h2><ul class="next"><li>Usar la potencia reactiva para separar la sobreexcitación.</li><li>Simular señales del rotor (corriente de campo, vibración) y contar arranques y paradas.</li><li>Repetir la evaluación con datos reales que tengan fallas registradas.</li></ul><button class="text-link" data-go="metodologia">Metodología y glosario <span aria-hidden="true">→</span></button></div>
     </div>
   </section>
@@ -265,7 +265,7 @@
   <section id="evaluacion" role="tabpanel" aria-labelledby="tab-evaluacion" hidden>
     <div class="section-heading">
       <p class="eyebrow">04 / Evaluación ciega</p>
-      <h1>¿Qué tan bien funciona la regla en años que no ha visto?</h1>
+      <h1>¿Qué tan bien funciona la regla en simulaciones que no ha visto?</h1>
       <p class="lead" id="eval-lead">El percentil y el retardo se eligen con unas semillas y el desempeño se mide una vez con otras. El detector no recibe la lista de episodios: la comparación con la verdad se hace después.</p>
     </div>
     <dl class="tiles" id="eval-tiles"></dl>
@@ -311,7 +311,7 @@
     <p class="interpretation" id="severity-note">—</p>
     <h2 class="subheading">Revisión del sistema de alarmas</h2>
     <div class="table-scroll"><table class="ledger compact">
-      <caption id="review-caption">Años de evaluación, desde el fin de la referencia</caption>
+      <caption id="review-caption">Simulaciones de evaluación, desde el fin de la referencia</caption>
       <thead><tr><th scope="col">Tag</th><th scope="col">Prioridad</th><th scope="col" class="num">Activaciones</th><th scope="col" class="num">Por 1000 h</th><th scope="col" class="num">Fugaces</th><th scope="col" class="num">Persistentes</th><th scope="col" class="num">Reactivaciones</th><th scope="col" class="num">Reactivaciones sin banda muerta</th></tr></thead>
       <tbody id="review-rows"></tbody>
     </table></div>
@@ -325,19 +325,19 @@
       <h1>Del archivo crudo a la métrica, paso a paso.</h1>
       <p class="lead">Todo se calcula en Python y el navegador solo lo presenta. El exportador vuelve a generar los datos y compara cada entrada antes de publicar.</p>
     </div>
-    <ol class="pipeline"><li><strong>Generación</strong><span>Semilla 781, 365 CSV con tags de historiador.</span></li><li><strong>Inventario y lectura</strong><span>SHA-256, esquema, números finitos y tipo de fila.</span></li><li><strong>Procesamiento</strong><span>Hora lógica y banderas, sin borrar celdas.</span></li><li><strong>Umbrales y alarmas</strong><span>Referencia por carga y ambiente; retardo, banda muerta y prioridad.</span></li><li><strong>Evaluación ciega</strong><span>20 años para calibrar, 100 para medir.</span></li><li><strong>Visualización</strong><span>Figuras y JSON verificados contra una regeneración.</span></li></ol>
+    <ol class="pipeline"><li><strong>Generación</strong><span>Semilla 781, 365 CSV con tags de historiador.</span></li><li><strong>Inventario y lectura</strong><span>SHA-256, esquema, números finitos y tipo de fila.</span></li><li><strong>Procesamiento</strong><span>Hora lógica y banderas, sin borrar celdas.</span></li><li><strong>Umbrales y alarmas</strong><span>Referencia por carga y ambiente; retardo, banda muerta y prioridad.</span></li><li><strong>Evaluación ciega</strong><span>20 simulaciones de un año para calibrar, 100 para medir.</span></li><li><strong>Visualización</strong><span>Figuras y JSON verificados contra una regeneración.</span></li></ol>
     <div class="reading">
       <div><h2>Comparar condiciones similares</h2><p>La referencia son los primeros 180 días de cada año. Se divide en bandas de potencia y de temperatura ambiente, con un mínimo de 30 observaciones por celda. El umbral de cada indicador es un percentil de su celda; sin referencia suficiente no hay umbral.</p><details><summary>Indicadores</summary><p>Elevación térmica = media de las temperaturas de devanado − ambiente.</p><p>Dispersión entre fases = 100 × (máximo − mínimo) / media. Es un indicador descriptivo, distinto del desbalance de secuencia negativa de las normas.</p></details></div>
       <div><h2>Herramientas</h2><p>Python, NumPy, pandas y Matplotlib generan y analizan los datos. Las pruebas automatizadas cubren reproducibilidad, conservación de registros, lógica de alarmas, puntuación de la evaluación y exportación web.</p><p>El sitio usa HTML, CSS, JavaScript y Plotly.js 3.7.0 servido localmente, sin backend ni recursos externos.</p></div>
     </div>
-    <h2 class="subheading">Qué fallas vería este método</h2>
+    <h2 class="subheading">Qué causas de daño vería este método</h2>
     <div class="table-scroll"><table class="ledger compact">
-      <caption>Hipótesis del fallo real que motivó el proyecto</caption>
-      <thead><tr><th scope="col">Causa posible</th><th scope="col">Señal que la delataría</th><th scope="col">¿La cubre este proyecto?</th></tr></thead>
+      <caption>Causas típicas de daño en devanados</caption>
+      <thead><tr><th scope="col">Causa típica</th><th scope="col">Señal que la delataría</th><th scope="col">¿La cubre este proyecto?</th></tr></thead>
       <tbody><tr><th scope="row">Sobrecarga</th><td>Potencia frente a la nominal</td><td>Sí: la descarta como explicación única</td></tr><tr><th scope="row">Ambiente caluroso</th><td>Temperatura de la sala</td><td>Sí: la descarta como explicación única</td></tr><tr><th scope="row">Refrigeración obstruida</th><td>Temperatura alta para esa carga y ambiente</td><td>Sí: es lo que detecta</td></tr><tr><th scope="row">Espiras en cortocircuito</th><td>Corriente de campo, vibración</td><td>Indirectamente, por la temperatura del estator</td></tr><tr><th scope="row">Sobreexcitación</th><td>Potencia reactiva, corriente de campo</td><td>Todavía no: <code>G1_Q</code> no se usa en el umbral</td></tr><tr><th scope="row">Falla a tierra del rotor</th><td>Relé de falla a tierra, resistencia de aislamiento</td><td>No se ve con estas señales</td></tr></tbody>
     </table></div>
     <h2 class="subheading" id="glosario">Glosario</h2>
-    <dl class="definitions glossary"><dt>Celda</dt><dd>Grupo de horas con carga y ambiente parecidos.</dd><dt>Referencia</dt><dd>Los primeros 180 días de cada año, sin fallas: lo que se considera normal.</dd><dt>Percentil 95</dt><dd>Valor que solo el 5 % de las horas normales de una celda supera. Es el umbral de esa celda.</dd><dt>Umbral fijo</dt><dd>Un solo límite para todas las horas. Es la línea base con la que se compara.</dd><dt>Elevación térmica</dt><dd>Temperatura media del devanado menos la temperatura ambiente.</dd><dt>Dispersión de corriente</dt><dd>Diferencia entre la fase más alta y la más baja, en % del promedio.</dd><dt>Retardo de activación</dt><dd>La condición debe durar 2 h antes de anunciar la alarma, como un relé con temporizador.</dd><dt>Banda muerta</dt><dd>Histéresis: la alarma se apaga solo cuando la señal baja claramente del umbral.</dd><dt>Prioridad</dt><dd>Baja si un indicador supera su umbral (informa); alta si lo superan los dos a la vez (pide acción).</dd><dt>Alarma fugaz</dt><dd>Se apaga sola en 2 h o menos. Muchas fugaces cansan al operador.</dd><dt>Detección</dt><dd>La alarma alta suena entre el inicio de la falla simulada y el disparo.</dd><dt>Falsa alarma</dt><dd>La alarma alta suena cuando no hay ninguna falla en curso.</dd><dt>Falsas alarmas por 1000 h</dt><dd>Cuántas hay por cada 1000 h de operación normal. Un año tiene 8760 h.</dd><dt>Anticipación</dt><dd>Horas entre la primera alarma alta y el disparo.</dd><dt>Calibración y evaluación</dt><dd>Unos años simulados para elegir la configuración y otros, distintos, para medirla una sola vez.</dd><dt>Intervalo de confianza del 95 %</dt><dd>Rango en el que probablemente estaría el resultado si se repitiera con otros años.</dd></dl>
+    <dl class="definitions glossary"><dt>Celda</dt><dd>Grupo de horas con carga y ambiente parecidos.</dd><dt>Referencia</dt><dd>Los primeros 180 días de cada año, sin fallas: lo que se considera normal.</dd><dt>Percentil 95</dt><dd>Valor que solo el 5 % de las horas normales de una celda supera. Es el umbral de esa celda.</dd><dt>Umbral fijo</dt><dd>Un solo límite para todas las horas. Es la línea base con la que se compara.</dd><dt>Elevación térmica</dt><dd>Temperatura media del devanado menos la temperatura ambiente.</dd><dt>Dispersión de corriente</dt><dd>Diferencia entre la fase más alta y la más baja, en % del promedio.</dd><dt>Retardo de activación</dt><dd>La condición debe durar 2 h antes de anunciar la alarma, como un relé con temporizador.</dd><dt>Banda muerta</dt><dd>Histéresis: la alarma se apaga solo cuando la señal baja claramente del umbral.</dd><dt>Prioridad</dt><dd>Baja si un indicador supera su umbral (informa); alta si lo superan los dos a la vez (pide acción).</dd><dt>Alarma fugaz</dt><dd>Se apaga sola en 2 h o menos. Muchas fugaces cansan al operador.</dd><dt>Detección</dt><dd>La alarma alta suena entre el inicio de la falla simulada y el disparo.</dd><dt>Falsa alarma</dt><dd>La alarma alta suena cuando no hay ninguna falla en curso.</dd><dt>Falsas alarmas por 1000 h</dt><dd>Cuántas hay por cada 1000 h de operación normal. Un año tiene 8760 h.</dd><dt>Anticipación</dt><dd>Horas entre la primera alarma alta y el disparo.</dd><dt>Calibración y evaluación</dt><dd>Unas simulaciones de un año para elegir la configuración y otras, distintas, para medirla una sola vez.</dd><dt>Intervalo de confianza del 95 %</dt><dd>Rango en el que probablemente estaría el resultado si se repitiera con otras simulaciones.</dd></dl>
     <h2 class="subheading">Reproducir</h2>
     <pre><code>python -B run_pipeline.py --output-dir runs/demo
 python -B run_evaluation.py --output-dir runs/demo

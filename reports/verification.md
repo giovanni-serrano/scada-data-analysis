@@ -26,4 +26,3 @@ Los tags (`G1_P`, `G1_IA`, …) son inventados para este proyecto.
 - Instalación desde cero, otros sistemas operativos y otros navegadores.
 - Auditoría de accesibilidad con lectores de pantalla.
 - El sitio público, que no cambia hasta fusionar esta rama.
-- Los cotejos contra material privado (nombres de señales, hashes y secuencias de valores) se hicieron sobre la versión anterior y no se repitieron aquí.
