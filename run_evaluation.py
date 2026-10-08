@@ -114,7 +114,7 @@ def report(summary):
         for a, b in zip(held["points"], plain["points"]))
     return f"""# Evaluación ciega de la regla de alarma
 
-Los datos son sintéticos. Esta evaluación mide la regla sobre {len(protocol['evaluation_seeds'])} años simulados que no se usaron para ajustarla.
+Los datos son sintéticos. Esta evaluación mide la regla sobre {len(protocol['evaluation_seeds'])} simulaciones de un año que no se usaron para ajustarla.
 
 ## Protocolo
 

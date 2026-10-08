@@ -8,7 +8,8 @@ from src.common import spanish
 PROJECT = Path(__file__).resolve().parents[1]
 # Wording that would tie the project to a real plant or incident.
 REAL_CASE_PHRASES = ("familiarización", "fallo real", "primer acercamiento", "el informe", "de la planta",
-                     "no puedo publicar", "parecidos, pero no iguales", "en el rotor y", "se dañara el generador")
+                     "no puedo publicar", "parecidos, pero no iguales", "en el rotor y", "se dañara el generador",
+                     "material privado")
 
 
 class ReadmeTests(unittest.TestCase):
@@ -79,9 +80,10 @@ class ReadmeTests(unittest.TestCase):
         for outdated in ("2042", "50 Hz", "etiqueta didáctica", "muestra comprensión"):
             self.assertNotIn(outdated, self.readme + self.methodology)
         # A general framing only: nothing may point to a specific plant, incident or report.
+        reports = "".join((PROJECT / "reports" / name).read_text(encoding="utf-8") for name in ("verification.md", "evaluation.md"))
         for phrase in REAL_CASE_PHRASES:
-            self.assertNotIn(phrase, (self.readme + self.methodology).lower())
-        self.assertNotIn("años simulados", self.readme + self.methodology)
+            self.assertNotIn(phrase, (self.readme + self.methodology + reports).lower())
+        self.assertNotIn("años simulados", self.readme + self.methodology + reports)
         self.assertLess(len(self.readme.splitlines()), 80)
         for document in ("README.md", "METODOLOGIA.md"):
             text = (PROJECT / document).read_text(encoding="utf-8")

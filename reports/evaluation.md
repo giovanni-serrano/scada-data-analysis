@@ -1,6 +1,6 @@
 # Evaluación ciega de la regla de alarma
 
-Los datos son sintéticos. Esta evaluación mide la regla sobre 100 años simulados que no se usaron para ajustarla.
+Los datos son sintéticos. Esta evaluación mide la regla sobre 100 simulaciones de un año que no se usaron para ajustarla.
 
 ## Protocolo
 
