@@ -85,8 +85,8 @@
     $("result-false-note").textContent = "falsas alarmas en operación normal: unas " + fmt(primary.false_alarms_per_1000h * 8.76) + " al año.";
     $("result-lead").textContent = hoursText(primary.lead_hours_median) + " o más";
     $("result-lead-note").textContent = "de margen en la mitad de los avisos: tiempo para planear una parada.";
-    $("result-basis").textContent = "Medido en " + fmt(years) + " años simulados que la regla nunca vio (" + fmt(primary.events) +
-      " fallas). La regla se ajustó con otros " + fmt(protocol.calibration_seeds.length) + ".";
+    $("result-basis").textContent = "Medido en " + fmt(years) + " simulaciones de un año que la regla nunca vio (" + fmt(primary.events) +
+      " fallas). La regla se ajustó con otras " + fmt(protocol.calibration_seeds.length) + ".";
     $("findings-detail").textContent = "Comparar con horas parecidas avisa en " + per100(primary.detection_rate) + " de cada 100 fallas; un umbral fijo, en " +
       per100(fixed.detection_rate) + ". Pero el tamaño importa: se detectó el " + pct(bands[0].detection_rate) + " de las fallas más leves y el " +
       pct(bands.at(-1).detection_rate) + " de las más fuertes (con umbral fijo, " + pct(fixedBands[0].detection_rate) + " y " + pct(fixedBands.at(-1).detection_rate) + ").";
@@ -127,7 +127,7 @@
       ". Fuera de los episodios hay " + fmt(normal.activations) + " activaciones, " + fmt(normal.activations_by_priority.alta) + " de prioridad alta.";
 
     $("eval-lead").textContent = "El percentil y el retardo se eligieron con " + fmt(protocol.calibration_seeds.length) +
-      " años simulados y el desempeño se midió una vez con otros " + fmt(years) +
+      " simulaciones de un año y el desempeño se midió una vez con otras " + fmt(years) +
       ". El detector no recibe la lista de episodios: la comparación con la verdad se hace después.";
     const tiles = [["Episodios detectados", pct(primary.detection_rate), "IC 95 %: " + span(primary.ci95.detection_rate, 100) + " % · " + fmt(primary.detected) + " de " + fmt(primary.events)],
       ["Falsas alarmas por 1000 h", fmt(primary.false_alarms_per_1000h, 2), "IC 95 %: " + span(primary.ci95.false_alarms_per_1000h, 1, 2)],
@@ -142,7 +142,7 @@
       span(item.ci95.detection_rate, 100) + " %", fmt(item.false_alarms_per_1000h, 2), span(item.ci95.false_alarms_per_1000h, 1, 2),
       hoursText(item.lead_hours_median), fmt(item.lead_hours_p10) + " – " + fmt(item.lead_hours_p90) + " h"], [1, 2, 3, 4, 5, 6])));
     const gap = evaluation.primary_minus_baseline, low = gap.ci95.detection_rate[0];
-    $("eval-verdict").textContent = "Con los mismos años, condicionar el umbral detecta " + fmt(100 * gap.detection_rate) +
+    $("eval-verdict").textContent = "Con las mismas simulaciones, condicionar el umbral detecta " + fmt(100 * gap.detection_rate) +
       " puntos más que un umbral fijo (IC 95 %: " + span(gap.ci95.detection_rate, 100) + "), con " + fmt(gap.false_alarms_per_1000h, 2) +
       " falsas alarmas más por 1000 h. " + (low > 0 ? "El intervalo excluye el cero. " : "El intervalo incluye el cero: no se distingue una ventaja. ") +
       "Condicionar solo por carga, sin el ambiente, detecta el " + pct(results.load.detection_rate) + " con " +
@@ -162,7 +162,7 @@
       " de los episodios; en el de mayor, el " + pct(bands.at(-1).detection_rate) + ". En el 80 % central de los episodios detectados la alarma se adelanta entre " +
       fmt(primary.lead_hours_p10) + " y " + fmt(primary.lead_hours_p90) + " h.";
     const review = evaluation.alarm_review.with_deadband, bare = evaluation.alarm_review.without_deadband, any = evaluation.any_priority;
-    $("review-caption").textContent = "Años de evaluación, desde el fin de la referencia · " + fmt(review.eligible_hours) + " horas elegibles";
+    $("review-caption").textContent = "Simulaciones de evaluación, desde el fin de la referencia · " + fmt(review.eligible_hours) + " horas elegibles";
     $("review-rows").replaceChildren(...review.points.map((item, index) => row([item.tag, item.priority, fmt(item.activations),
       fmt(1000 * item.activations / review.eligible_hours, 2), fmt(item.fleeting), fmt(item.stale), fmt(item.repeats), fmt(bare.points[index].repeats)], [2, 3, 4, 5, 6, 7])));
     $("review-note").textContent = "En total, " + fmt(review.activations_per_hour, 3) + " activaciones por hora para esta unidad; la referencia habitual de ISA-18.2 es de hasta unas 12 por hora por operador para toda la planta. El " +

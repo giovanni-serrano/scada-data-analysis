@@ -42,14 +42,14 @@ Los datos son horarios, así que los tiempos de la norma, pensados en segundos y
 
 ## 5. La evaluación
 
-1. Con 20 años simulados de *calibración* se probaron 9 combinaciones: percentil 95, 99 o 99,5 y retardo de 2, 3 o 4 h. La regla de elección se fijó antes de ver resultados: la mayor detección con un máximo de 1 falsa alarma por 1000 h. Ganó **percentil 95 con 2 h**.
-2. Esa configuración se aplicó sin cambios a 100 años de *evaluación* distintos.
+1. Con 20 simulaciones de un año de *calibración* se probaron 9 combinaciones: percentil 95, 99 o 99,5 y retardo de 2, 3 o 4 h. La regla de elección se fijó antes de ver resultados: la mayor detección con un máximo de 1 falsa alarma por 1000 h. Ganó **percentil 95 con 2 h**.
+2. Esa configuración se aplicó sin cambios a 100 simulaciones de un año de *evaluación*, distintas de las anteriores.
 3. Un episodio está *detectado* si la alarma alta se activa entre el inicio de su rampa y el disparo. Una *falsa alarma* es una activación fuera de las rampas y de las paradas posteriores.
-4. Los *intervalos de confianza* del 95 % salen de *remuestrear* años completos 2000 veces.
+4. Los *intervalos de confianza* del 95 % salen de *remuestrear* simulaciones completas 2000 veces.
 
 ### Resultados
 
-Sobre 100 años de evaluación (291 episodios), con percentil 95 y 2 h de retardo:
+Sobre 100 simulaciones de un año de evaluación (291 episodios), con percentil 95 y 2 h de retardo:
 
 | Umbral | Detección [IC 95 %] | Detectados | Falsas alarmas por 1000 h [IC 95 %] | Anticipación mediana [IC 95 %] | Anticipación P10–P90 |
 |---|---|---:|---|---|---|
@@ -57,15 +57,15 @@ Sobre 100 años de evaluación (291 episodios), con percentil 95 y 2 h de retard
 | Condicionado solo por carga | 60 % [54; 66] | 174/291 | 0,10 [0,07; 0,14] | 32 h [29; 36] | 9–65 h |
 | Fijo (línea base) | 28 % [23; 34] | 82/291 | 0,15 [0,11; 0,20] | 30 h [24; 38] | 4–67 h |
 
-- Con los mismos años, condicionar el umbral detecta 36 puntos más que el umbral fijo (IC 95 %: 30 a 42).
+- Con las mismas simulaciones, condicionar el umbral detecta 36 puntos más que el umbral fijo (IC 95 %: 30 a 42).
 - Por severidad (de menor a mayor): 32 %, 61 %, 70 % y 90 % de episodios detectados.
-- En calibración, la misma configuración detectaba el 77 %. La caída hasta el 64 % es la razón de medir con años distintos: el primer número es el mejor de nueve intentos.
+- En calibración, la misma configuración detectaba el 77 %. La caída hasta el 64 % es la razón de medir con simulaciones distintas: el primer número es el mejor de nueve intentos.
 
-## 6. Qué fallas vería este método
+## 6. Causas típicas de daño en devanados, y qué puede decir el método
 
-Las hipótesis son las que dejó abiertas el informe del fallo real que motivó el proyecto.
+Cuando un generador sale de servicio por daño en los devanados, estas son causas que suelen considerarse:
 
-| Hipótesis | Señal SCADA que la delataría | ¿La cubre este proyecto? |
+| Causa típica | Señal SCADA que la delataría | ¿La cubre este proyecto? |
 |---|---|---|
 | Sobrecarga | Potencia frente a la nominal | Sí: el umbral depende de la carga, así que la descarta como explicación única |
 | Ambiente caluroso | Temperatura de la sala | Sí: el umbral también depende del ambiente |
@@ -78,8 +78,9 @@ Las hipótesis son las que dejó abiertas el informe del fallo real que motivó 
 
 ## 7. Decisiones, en una línea cada una
 
-- **¿Por qué datos simulados?** No puedo publicar los datos de la planta y, con datos reales, casi nunca se sabe cuándo empezó una falla. Al simular, sé el inicio exacto de cada degradación y puedo calificar al detector en cientos de casos.
-- **¿Por qué separar calibración y evaluación?** Si eliges y mides con los mismos datos, te calificas con el examen que ya viste. Por eso el 77 % de calibración bajó al 64 % en años nuevos.
+- **¿Por qué datos simulados?** Con datos reales casi nunca se sabe cuándo empezó una falla. Al simular se conoce el inicio exacto de cada degradación y se puede calificar al detector.
+- **¿Por qué tantas simulaciones?** Un año trae solo 2 a 4 fallas. Con unas pocas, el porcentaje de detección cambiaría mucho de una prueba a otra; hacen falta cientos para que sea confiable. Por eso se usan 100 simulaciones de un año para medir (291 fallas en total).
+- **¿Por qué separar calibración y evaluación?** Si eliges y mides con los mismos datos, te calificas con el examen que ya viste. Por eso el 77 % de calibración bajó al 64 % en simulaciones nuevas.
 - **¿Por qué el ambiente cuesta falsas alarmas?** La elevación térmica ya resta el ambiente, así que dividir también por ambiente aporta poca información nueva. Además, cada celda queda con menos horas de referencia y con un umbral más ajustado: detecta un poco más y también se cruza más veces por azar.
 - **¿Por qué dos prioridades?** Si la prioridad baja contara como detección, se detectarían todos los episodios, pero con decenas de falsas alarmas por cada 1000 h. La alta, que exige los dos indicadores a la vez, es la que se puede atender.
 
@@ -114,10 +115,10 @@ Las hipótesis son las que dejó abiertas el informe del fallo real que motivó 
 | Anticipación | Horas entre la primera alarma alta y el disparo. |
 | Mediana | El valor del medio: la mitad de los casos está por encima y la otra mitad por debajo. |
 | P10–P90 | Rango que contiene el 80 % central de los casos. |
-| Calibración | Años simulados usados para elegir la configuración. |
-| Evaluación | Años simulados distintos, usados una sola vez para medir. |
-| Intervalo de confianza del 95 % | Rango en el que probablemente estaría el resultado si se repitiera el experimento con otros años. |
-| Remuestreo (*bootstrap*) | Repetir el cálculo muchas veces sorteando años con reemplazo para ver cuánto varía el resultado. |
+| Calibración | Simulaciones de un año usadas para elegir la configuración. |
+| Evaluación | Simulaciones de un año distintas, usadas una sola vez para medir. |
+| Intervalo de confianza del 95 % | Rango en el que probablemente estaría el resultado si se repitiera el experimento con otras simulaciones. |
+| Remuestreo (*bootstrap*) | Repetir el cálculo muchas veces sorteando simulaciones con reemplazo para ver cuánto varía el resultado. |
 
 ## Alcance
 
