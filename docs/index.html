@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Exploración de variables eléctricas y calidad de registros con datos SCADA completamente sintéticos.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-src 'none'">
+  <title>SCADA | Explorador de señales</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="assets/vendor/plotly-3.7.0.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Saltar al contenido</a>
+<div class="frame">
+<header class="masthead">
+  <a class="brand" href="#resumen" aria-label="SCADA, volver al resumen">SCADA <span>| Explorador de señales</span></a>
+  <span class="synthetic">Demostración con datos sintéticos</span>
+</header>
+<div class="navigation">
+  <nav aria-label="Secciones del explorador">
+    <div role="tablist" aria-label="Contenido" id="tabs">
+      <button role="tab" id="tab-resumen" aria-controls="resumen" aria-selected="true" tabindex="0">Resumen</button>
+      <button role="tab" id="tab-variables" aria-controls="variables" aria-selected="false" tabindex="-1">Variables eléctricas</button>
+      <button role="tab" id="tab-calidad" aria-controls="calidad" aria-selected="false" tabindex="-1">Calidad de datos</button>
+      <button role="tab" id="tab-anomalias" aria-controls="anomalias" aria-selected="false" tabindex="-1">Anomalías</button>
+      <button role="tab" id="tab-metodologia" aria-controls="metodologia" aria-selected="false" tabindex="-1">Metodología</button>
+    </div>
+  </nav>
+  <div id="load-status" class="load-status" role="status" aria-live="polite">Cargando la demostración sintética…</div>
+</div>
+<main id="main" tabindex="-1">
+  <div id="load-error" class="load-error" role="alert" hidden><strong>No se pudo cargar la demostración.</strong><p id="error-detail">Comprueba la conexión con el servidor local.</p><button id="retry">Volver a intentar</button></div>
+  <noscript><p>Este explorador necesita JavaScript. El análisis y las figuras también están documentados en el repositorio.</p></noscript>
+
+  <section id="resumen" role="tabpanel" aria-labelledby="tab-resumen">
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Análisis exploratorio · Python · Ingeniería eléctrica</p>
+        <h1>¿Qué pueden contarnos los datos de un sistema eléctrico?</h1>
+        <p class="lead">Corriente, potencia y temperatura ayudan a explorar un sistema. Antes de interpretar un cambio, necesitamos comprobar que sus registros son consistentes y comparables.</p>
+      </div>
+      <aside class="case-note">
+        <span class="small-label">El caso de estudio</span>
+        <p>Una unidad hidroeléctrica ficticia.<br>Un año de mediciones horarias.<br>Un escenario generado desde cero.</p>
+        <dl class="metrics" id="summary-metrics">
+          <div><dt>Registros sintéticos</dt><dd id="record-count">—</dd></div>
+          <div><dt>Variables estudiadas</dt><dd id="signal-count">—</dd></div>
+          <div><dt>Mediciones seleccionadas</dt><dd id="selected-count">—</dd></div>
+        </dl>
+        <span class="small-label">Leer, explorar, verificar</span>
+        <p>El análisis demuestra un método; no acredita diagnóstico ni capacidad predictiva industrial.</p>
+      </aside>
+    </div>
+    <div class="editorial-row">
+      <div>
+        <p class="number">01 / Relaciones</p>
+        <h2>Las variables se relacionan.</h2>
+        <p>Cuando cambia la carga, cambian las corrientes. La temperatura también responde al funcionamiento y al ambiente, con cierto retraso.</p>
+        <button class="text-link" data-go="variables">Explorar las variables <span aria-hidden="true">→</span></button>
+      </div>
+      <figure class="panel">
+        <figcaption>Carga y corriente media · 14 días de referencia sintética</figcaption>
+        <div class="mini-chart" id="overview-load" role="img" aria-label="Potencia activa frente a corriente media en catorce días de referencia"></div>
+      </figure>
+    </div>
+    <div class="editorial-row">
+      <div>
+        <p class="number">02 / Calidad</p>
+        <h2>Los registros necesitan validación.</h2>
+        <p>Una hora faltante, una medición contradictoria o un sensor congelado pueden cambiar la interpretación. Conservar una fila no obliga a aceptarla para todas las comparaciones.</p>
+        <button class="text-link" data-go="calidad">Ver la calidad de los datos <span aria-hidden="true">→</span></button>
+      </div>
+      <figure class="panel">
+        <figcaption>Cobertura diaria · las incidencias fueron introducidas artificialmente</figcaption>
+        <div class="mini-chart" id="overview-quality" role="img" aria-label="Conteo diario de horas seleccionadas sin ambigüedad"></div>
+      </figure>
+    </div>
+    <div class="editorial-row">
+      <div>
+        <p class="number">03 / Contexto</p>
+        <h2>Un cambio inusual necesita contexto.</h2>
+        <p>Se introdujeron señales antes de una parada artificial. Compararlas bajo condiciones similares permite explorar el cambio; no demuestra que el método pueda anticipar averías reales.</p>
+        <button class="text-link" data-go="anomalias">Examinar el cambio artificial <span aria-hidden="true">→</span></button>
+      </div>
+      <figure class="panel">
+        <figcaption>72 horas previas · dispersión de las corrientes de fase</figcaption>
+        <div class="mini-chart" id="overview-event" role="img" aria-label="Dispersión de corriente durante las 72 horas previas al evento artificial"></div>
+      </figure>
+    </div>
+    <p class="conclusion">El valor del análisis está en comprobar si los datos son confiables y si las diferencias tienen una interpretación técnica razonable.</p>
+  </section>
+
+  <section id="variables" role="tabpanel" aria-labelledby="tab-variables" hidden>
+    <div class="section-heading">
+      <p class="eyebrow">01 / Relaciones eléctricas</p>
+      <h1>¿Cómo cambia la corriente con la carga?</h1>
+      <p class="lead">Una comparación entre fases permite distinguir un aumento común por carga de una diferencia entre sus lecturas.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="controls"><label for="relationship-period">Período mostrado</label><select id="relationship-period"><option value="reference">Referencia · 14 días de julio</option><option value="pre_event">72 horas previas al evento</option></select><span class="range-label" id="relationship-range"></span></div>
+        <div class="actions"><button data-zoom="current-chart">Ampliar 2×</button><button data-reset="current-chart">Restablecer vista</button></div>
+      </div>
+      <fieldset class="series-controls">
+        <legend>Corrientes de fase</legend>
+        <label><input type="checkbox" data-phase="a" checked><span class="swatch circle c-a" aria-hidden="true"></span>Fase A</label>
+        <label><input type="checkbox" data-phase="b" checked><span class="swatch square c-b" aria-hidden="true"></span>Fase B</label>
+        <label><input type="checkbox" data-phase="c" checked><span class="swatch diamond c-c" aria-hidden="true"></span>Fase C</label>
+      </fieldset>
+      <p id="phase-empty" class="empty-state" role="status" hidden>Selecciona al menos una fase para mostrar sus mediciones.</p>
+      <div class="chart" id="current-chart" role="img" aria-label="Dispersión de potencia activa en kilovatios frente a corrientes de fase en amperios"></div>
+      <p class="hint">Arrastra para ampliar · inspecciona cada punto</p>
+    </div>
+    <div class="reading">
+      <div><h3>Qué observamos</h3><p>En la referencia, las tres corrientes siguen la carga. Antes del evento, sus diferencias aumentan por una inyección deliberada del generador.</p></div>
+      <div><h3>Por qué interesa</h3><p>Comparar condiciones de carga similares ayuda a evitar que un aumento general de corriente se interprete como un comportamiento distinto de una sola fase.</p></div>
+    </div>
+    <h2 class="subheading">¿La temperatura depende solo de la potencia?</h2>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="controls"><label for="thermal-mode">Magnitud térmica</label><select id="thermal-mode"><option value="rise">Elevación media sobre el ambiente</option><option value="absolute">Temperaturas de devanados y ambiente</option></select></div>
+        <div class="actions"><button data-reset="thermal-chart">Restablecer vista</button></div>
+      </div>
+      <div class="key" id="thermal-key" role="group" aria-label="Series mostradas" hidden>
+        <button type="button" class="key-item" data-chart="thermal-chart" data-series="Devanado A" aria-pressed="true"><span class="swatch circle c-a" aria-hidden="true"></span>Devanado A</button>
+        <button type="button" class="key-item" data-chart="thermal-chart" data-series="Devanado B" aria-pressed="true"><span class="swatch square c-b" aria-hidden="true"></span>Devanado B</button>
+        <button type="button" class="key-item" data-chart="thermal-chart" data-series="Devanado C" aria-pressed="true"><span class="swatch diamond c-c" aria-hidden="true"></span>Devanado C</button>
+        <button type="button" class="key-item" data-chart="thermal-chart" data-series="Ambiente" aria-pressed="true"><span class="swatch cross c-context" aria-hidden="true"></span>Ambiente</button>
+      </div>
+      <div class="chart" id="thermal-chart" role="img" aria-label="Potencia activa frente a temperaturas de devanados o su elevación sobre el ambiente"></div>
+    </div>
+    <p class="interpretation">La temperatura depende de carga, ambiente y una inercia térmica simplificada. La elevación sobre el ambiente aporta contexto, pero estas relaciones diseñadas no permiten identificar una causa de falla real.</p>
+    <details><summary>Definiciones, unidades y límites del modelo</summary><dl class="definitions"><dt>P · kW</dt><dd>Potencia activa: transferencia neta de energía asociada a trabajo útil; representa la carga generada.</dd><dt>Q · kvar</dt><dd>Potencia reactiva: intercambio de energía con campos eléctricos y magnéticos; proporcional a P en este escenario.</dd><dt>I · A / V · V</dt><dd>Corrientes A/B/C y tensiones entre fases AB/BC/CA. La relación trifásica del generador es aproximada.</dd><dt>Temperatura · °C</dt><dd>Ambiente, devanados, cojinetes y aceite. La elevación térmica resta el ambiente a la media de devanados.</dd><dt>Frecuencia · Hz</dt><dd>50 Hz ficticios durante generación; cero en parada. No representa necesariamente una instalación concreta.</dd><dt>Hidráulica</dt><dd>Nivel en m y aperturas en %. <code>penstock_pressure_m</code> es una señal didáctica etiquetada en metros; el código no demuestra una conversión a metros de columna de agua ni un balance energético completo.</dd></dl><p>No se muestrean puntos: se muestran todas las horas elegibles de cada período. El período de 14 días ilustra relaciones; la referencia estadística se ajusta con las primeras 240 jornadas completas.</p></details>
+  </section>
+
+  <section id="calidad" role="tabpanel" aria-labelledby="tab-calidad" hidden>
+    <div class="section-heading">
+      <p class="eyebrow">02 / Ingeniería de datos</p>
+      <h1>¿Qué tan confiables son los registros?</h1>
+      <p class="lead">Las incidencias son artificiales. Validarlas evita convertir un problema de registro en una conclusión sobre el equipo.</p>
+    </div>
+    <table class="ledger">
+      <caption>Incidencias del escenario y su tratamiento</caption>
+      <thead><tr><th scope="col">Incidencia</th><th scope="col" class="num">Cantidad</th><th scope="col">Tratamiento</th></tr></thead>
+      <tbody id="quality-facts"></tbody>
+    </table>
+    <h2>Conservar, seleccionar y comparar son decisiones distintas.</h2>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="key" role="group" aria-label="Series mostradas">
+          <button type="button" class="key-item" data-chart="coverage-chart" data-series="Filas de medición conservadas" aria-pressed="true"><span class="swatch line dot c-series-3" aria-hidden="true"></span>Filas de medición conservadas</button>
+          <button type="button" class="key-item" data-chart="coverage-chart" data-series="Horas seleccionadas" aria-pressed="true"><span class="swatch line c-series-2" aria-hidden="true"></span>Horas seleccionadas</button>
+          <button type="button" class="key-item" data-chart="coverage-chart" data-series="Horas elegibles" aria-pressed="true"><span class="swatch line dash c-series" aria-hidden="true"></span>Horas elegibles</button>
+        </div>
+        <div class="actions"><button data-reset="coverage-chart">Restablecer vista</button></div>
+      </div>
+      <div class="chart" id="coverage-chart" role="img" aria-label="Conteos diarios de filas de medición conservadas, horas seleccionadas y horas elegibles"></div>
+      <p class="hint">Conteos diarios · las categorías no son sumables</p>
+    </div>
+    <div class="reading three">
+      <div><h3>Procedencia</h3><p>Archivo, línea física, timestamp y celdas originales permanecen asociados a cada fila.</p></div>
+      <div><h3>Integridad</h3><p>Un inventario con SHA-256 comprueba que el procesamiento no modifique los CSV originales.</p></div>
+      <div><h3>Elegibilidad</h3><p>Una hora solo participa en la comparación si supera las reglas de selección, continuidad, sensor y soporte histórico.</p></div>
+    </div>
+    <h2 class="subheading">¿Qué sucede si una temperatura queda congelada?</h2>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="key" role="group" aria-label="Series mostradas">
+          <button type="button" class="key-item" data-chart="sensor-chart" data-series="Cojinete A" aria-pressed="true"><span class="swatch line c-a" aria-hidden="true"></span>Cojinete A</button>
+          <button type="button" class="key-item" data-chart="sensor-chart" data-series="Cojinete B" aria-pressed="true"><span class="swatch line dash c-b" aria-hidden="true"></span>Cojinete B</button>
+          <button type="button" class="key-item" data-chart="sensor-chart" data-series="Ambiente" aria-pressed="true"><span class="swatch line dot c-context" aria-hidden="true"></span>Ambiente</button>
+          <span class="key-item"><span class="swatch band c-context" aria-hidden="true"></span>Lectura congelada</span>
+        </div>
+        <div class="actions"><button data-reset="sensor-chart">Restablecer vista</button></div>
+      </div>
+      <div class="chart" id="sensor-chart" role="img" aria-label="Temperaturas de cojinetes y ambiente alrededor de una meseta exacta de 18 horas"></div>
+    </div>
+    <p class="interpretation">La bandera de meseta del cojinete B excluye <strong>la observación horaria completa</strong> de la comparación. La fila sigue conservada. La detección es retrospectiva y no demuestra una avería térmica.</p>
+    <details><summary>Cómo se tratan timestamps e incidencias</summary><ul><li>Las dos alternativas de una hora contradictoria se conservan y ambas quedan fuera de la selección estadística.</li><li>Un registro hasta tres segundos antes de la hora recibe una hora lógica derivada; el timestamp original no cambia.</li><li>No se interpolan horas faltantes. Un evento de comunicación no es una medición ni rellena un hueco.</li><li>La generación estable requiere la hora actual y tres previas consecutivas en generación.</li><li>La meseta requiere al menos seis valores idénticos en horas contiguas. La comparación también exige soporte histórico suficiente.</li></ul></details>
+  </section>
+
+  <section id="anomalias" role="tabpanel" aria-labelledby="tab-anomalias" hidden>
+    <div class="section-heading">
+      <p class="eyebrow">03 / Cambios con contexto</p>
+      <h1>¿Qué cambió antes del evento artificial?</h1>
+      <p class="lead">El escenario introduce dispersión entre fases y una elevación térmica adicional. Los umbrales proceden de una referencia anterior al cambio.</p>
+    </div>
+    <fieldset class="window-controls">
+      <legend>Ventana anterior al evento</legend>
+      <div class="segmented"><button data-window="72" aria-pressed="true">72 horas</button><button data-window="24" aria-pressed="false">24 horas</button><button data-window="6" aria-pressed="false">6 horas</button></div>
+    </fieldset>
+    <table class="ledger windows">
+      <caption>Las tres ventanas, lado a lado</caption>
+      <thead><tr><th scope="col">Ventana</th><th scope="col" class="num">Horas elegibles / calendario</th><th scope="col" class="num">Horas con alerta persistente</th><th scope="col" class="num">Residual térmico mediano</th></tr></thead>
+      <tbody id="window-rows"></tbody>
+    </table>
+    <p class="hint">Las ventanas se solapan: la de 6 horas está dentro de la de 24, y esta dentro de la de 72. Sus cifras no se suman.</p>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="key" role="group" aria-label="Elementos de la gráfica">
+          <button type="button" class="key-item" data-chart="anomaly-chart" data-series="Indicador calculado" aria-pressed="true"><span class="swatch line c-series" aria-hidden="true"></span>Indicador calculado</button>
+          <button type="button" class="key-item" data-chart="anomaly-chart" data-series="Umbral P99 histórico" aria-pressed="true"><span class="swatch line dash c-context" aria-hidden="true"></span>Umbral P99 histórico</button>
+          <button type="button" class="key-item" data-chart="anomaly-chart" data-series="Alerta persistente" aria-pressed="true"><span class="swatch diamond fill c-alert" aria-hidden="true"></span>Alerta persistente</button>
+          <span class="key-item"><span class="swatch vline c-ink" aria-hidden="true"></span>Evento artificial</span>
+        </div>
+        <div class="actions"><button data-reset="anomaly-chart">Restablecer vista</button></div>
+      </div>
+      <p class="range-label" id="window-range">Período seleccionado</p>
+      <div class="chart anomaly-chart" id="anomaly-chart" role="img" aria-label="Elevación térmica y dispersión de corriente y tensión, con umbrales históricos y alertas persistentes"></div>
+    </div>
+    <p class="interpretation">La primera alerta persistente aparece <strong id="lead-hours">—</strong> antes del evento, dentro del cambio diseñado. Este resultado describe el escenario conocido; <strong>no prueba capacidad predictiva</strong>.</p>
+    <div class="reading">
+      <div><h3>Qué define una alerta</h3><p>Elevación térmica y dispersión de corriente superiores simultáneamente a sus P99 por carga y ambiente. Se marca la tercera y las siguientes horas consecutivas con exceso conjunto. La tensión aporta contexto.</p></div>
+      <div><h3>Cómo leer las ventanas</h3><p>Se incluyen las horas desde el comienzo de la ventana y se excluye el instante del evento. Las ventanas se solapan. La persistencia se calcula sobre la serie original y no se reinicia al cambiar de ventana.</p></div>
+    </div>
+    <details><summary>Medición, indicador, alerta y diagnóstico</summary><dl class="definitions"><dt>Medición</dt><dd>Valor horario generado de una señal, por ejemplo corriente de fase.</dd><dt>Indicador</dt><dd>Transformación calculada: elevación térmica o dispersión relativa entre fases.</dd><dt>Alerta</dt><dd>Cumplimiento de una regla empírica explícita sobre observaciones elegibles.</dd><dt>Evento sintético</dt><dd>Parada artificial el 18 de noviembre de 2042 a las 20:00, en un reloj ficticio sin zona horaria.</dd><dt>Diagnóstico industrial</dt><dd>Atribución de una causa de falla con evidencia independiente; este proyecto no lo proporciona.</dd></dl><p>La referencia presenta cero alertas persistentes y el tramo normal posterior también, con dos excesos conjuntos aislados. Un solo evento, conocido por el diseñador, no permite estimar desempeño en otra población.</p></details>
+  </section>
+
+  <section id="metodologia" role="tabpanel" aria-labelledby="tab-metodologia" hidden>
+    <div class="section-heading">
+      <p class="eyebrow">04 / Evidencia reproducible</p>
+      <h1>Entender primero. Verificar después.</h1>
+      <p class="lead">Una presentación interactiva sobre un análisis Python existente. Los indicadores se calculan en Python y el navegador solo los presenta.</p>
+    </div>
+    <ol class="pipeline"><li><strong>Generación sintética</strong><span>Semilla 781, ecuaciones didácticas, 365 CSV.</span></li><li><strong>Inventario</strong><span>Rutas relativas, tamaños y SHA-256.</span></li><li><strong>Lectura y validación</strong><span>Esquema, números finitos, tiempo y tipo de fila.</span></li><li><strong>Procesamiento</strong><span>Hora lógica y banderas, sin borrar celdas.</span></li><li><strong>Análisis</strong><span>Referencia por carga/ambiente y reglas explícitas.</span></li><li><strong>Visualización</strong><span>Figuras y JSON verificados desde el escenario público.</span></li></ol>
+    <div class="reading">
+      <div><h2>Comparar condiciones similares</h2><p>La referencia usa 240 jornadas anteriores al cambio. Se divide por bandas de potencia y ambiente, con un mínimo de 30 observaciones por celda. No se extrapolan umbrales cuando falta soporte.</p><details><summary>Indicadores y fórmulas</summary><p>Elevación térmica = media de temperaturas de devanados − ambiente.</p><p>Dispersión relativa = 100 × (máximo − mínimo) / media. No representa una medida normativa de secuencia negativa.</p><p>Residual = observado − mediana histórica de su celda. En la dispersión, el residual se expresa en puntos porcentuales. El P99 es un umbral empírico, no un intervalo de confianza.</p></details></div>
+      <div><h2>Verificar los resultados</h2><p>Python, NumPy, pandas y Matplotlib generan y analizan los datos. Las 13 pruebas originales verifican conservación, integridad, continuidad, referencia y cambios inyectados. El exportador web añade comprobaciones específicas y contrasta sus entradas con una regeneración limpia.</p><p>El sitio utiliza HTML, CSS, JavaScript y Plotly.js 3.7.0 servido localmente. No necesita backend, fuentes externas, analítica ni conexión a un sistema industrial.</p></div>
+    </div>
+    <h2 class="subheading">Reproducir desde el código público</h2>
+    <pre><code>python -B run_pipeline.py --output-dir runs/demo
+python -B export_dashboard.py --source-root runs/demo
+python -B -m unittest discover -v
+python -B -m http.server 8000 --bind 127.0.0.1 --directory docs</code></pre>
+    <p>Con las dependencias de <code>requirements.txt</code> instaladas, abre <code>http://127.0.0.1:8000/</code>. Usa una carpeta de salida nueva. No abras únicamente el HTML mediante <code>file://</code>.</p>
+    <div class="reading">
+      <div><h2>Desarrollo asistido por IA</h2><p>Proyecto personal desarrollado con asistencia de herramientas de inteligencia artificial para programación, organización del análisis, revisión y documentación. Los resultados se obtienen mediante un procedimiento reproducible y pruebas automatizadas.</p></div>
+      <div class="limits"><h2>Límites de la evidencia</h2><p>Un año, un evento y un escenario conocido. La meseta es retrospectiva; las horas están correlacionadas. No hay validación experimental del modelo físico, diagnóstico de causa raíz ni capacidad predictiva industrial.</p></div>
+    </div>
+    <p class="interpretation">Todos los datos son sintéticos. La procedencia se comprueba contra el generador público; esto no constituye una garantía universal de confidencialidad ni una certificación de derechos de publicación.</p>
+    <a class="repository-link" href="https://github.com/giovanni-serrano/scada-data-analysis" rel="noreferrer">Consultar código, pruebas y documentación en GitHub <span aria-hidden="true">↗</span></a>
+  </section>
+</main>
+<footer><span>SCADA | Explorador de señales</span><span>Datos sintéticos · Sin validación industrial</span><a href="assets/vendor/THIRD_PARTY.md">Dependencia y licencia</a></footer>
+</div>
+</body>
+</html>

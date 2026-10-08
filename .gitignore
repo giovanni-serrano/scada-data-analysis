@@ -1,0 +1,12 @@
+# Reproducible generated tables are local outputs.
+/data/raw/
+/data/interim/
+/data/processed/
+/data/synthetic_scenario.json
+/runs/
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.DS_Store
+Thumbs.db
