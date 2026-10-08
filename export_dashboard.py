@@ -7,8 +7,10 @@ import tempfile
 import pandas as pd
 
 from run_pipeline import run
+from src.alarms import ALARM_POINTS
 from src.analyze_scada import METRICS, derive, detect, event_windows
 from src.common import SIGNALS, TAG_CATALOG, digest
+from src.evaluate import evaluate
 from src.generate_synthetic_scada import SEED
 
 TABLES = ("quality_summary.json", "analysis_summary.json", "historical_reference.csv",
@@ -35,14 +37,29 @@ def verify_synthetic(root):
     return truth, {p.as_posix(): digest(root / p) for p in expected}
 
 
+def verified_evaluation(root, rerun=True):
+    """Load the multi-seed summary and, unless told otherwise, recompute it from its own seeds."""
+    path = Path(root) / "reports/evaluation_summary.json"
+    summary = json.loads(path.read_text(encoding="utf-8"))
+    if summary.get("synthetic_only") is not True:
+        raise ValueError("Only the documented synthetic evaluation is supported")
+    if rerun:
+        protocol = summary["protocol"]
+        fresh = evaluate(protocol["calibration_seeds"], protocol["evaluation_seeds"], resamples=protocol["bootstrap_resamples"])
+        if json.loads(json.dumps(fresh)) != summary:
+            raise ValueError("Evaluation summary differs from regeneration")
+    return summary, digest(path)
+
+
 def records(frame, columns):
     # JSON null represents missing/undefined values, never zero or nonstandard NaN.
     return json.loads(frame[columns].to_json(orient="records", date_format="iso", double_precision=12))
 
 
-def build_payload(root):
+def build_payload(root, verify_evaluation=True):
     root = Path(root)
     truth, hashes = verify_synthetic(root)
+    evaluation, hashes["reports/evaluation_summary.json"] = verified_evaluation(root, rerun=verify_evaluation)
     summary = json.loads((root / "reports/analysis_summary.json").read_text(encoding="utf-8"))
     quality = json.loads((root / "reports/quality_summary.json").read_text(encoding="utf-8"))
     source = pd.read_csv(root / "data/processed/scada.csv", keep_default_na=False)
@@ -80,7 +97,8 @@ def build_payload(root):
         "tags": [dict(zip(("tag", "signal", "unit", "description"), row)) for row in TAG_CATALOG],
         "summary": {key: value for key, value in summary.items() if key != "events"}, "quality": quality,
         "provenance": {"exporter": "export_dashboard.py", "source_sha256": hashes,
-                       "verification": f"{len(hashes)} data/table inputs checked against fresh synthetic regeneration",
+                       "verification": f"{len(hashes) - 1} data/table inputs checked against fresh synthetic regeneration",
+                       "evaluation_recomputed": verify_evaluation,
                        "presentation": "No sampling: all eligible hourly observations in each displayed period; daily coverage is a count."},
         "relationships": {"reference_start": reference_start.isoformat(), "reference_end_exclusive": reference_end.isoformat(),
                           "reference": records(reference, relation_columns), "pre_event": records(pd.concat(recent), relation_columns)},
@@ -88,13 +106,15 @@ def build_payload(root):
         "sensor": {"start": frozen.t.min().isoformat(), "end_exclusive": (frozen.t.max() + pd.Timedelta(hours=1)).isoformat(),
                    "rows": records(sensor, ["t", "bearing_temperature_a_c", "bearing_temperature_b_c", "room_temperature_c", "sensor_flat"])},
         "events": events,
+        "alarm_points": [dict(zip(("tag", "column", "priority", "description"), row)) for row in ALARM_POINTS],
+        "evaluation": evaluation,
         "incidents": {"missing": truth["missing_measurement_hours"], "conflicts": truth["conflicting_duplicate_hours"],
                       "shifted": truth["early_by_two_seconds"], "communication": truth["communication_fault_hours"]},
     }
 
 
-def export(root, output):
-    payload = build_payload(root)
+def export(root, output, verify_evaluation=True):
+    payload = build_payload(root, verify_evaluation=verify_evaluation)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     # Binary write keeps LF and identical bytes on different operating systems.
@@ -106,6 +126,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path, default=Path(__file__).resolve().parent)
     parser.add_argument("--output", type=Path, default=Path(__file__).resolve().parent / "docs/assets/dashboard-data.json")
+    parser.add_argument("--skip-evaluation-check", action="store_true",
+                        help="trust reports/evaluation_summary.json instead of recomputing every simulated year")
     args = parser.parse_args()
-    payload = export(args.source_root, args.output)
-    print(f"Web export: {len(payload['events'])} events; {len(payload['coverage'])} daily coverage counts.")
+    payload = export(args.source_root, args.output, verify_evaluation=not args.skip_evaluation_check)
+    print(f"Web export: {len(payload['events'])} events; {len(payload['coverage'])} daily coverage counts; "
+          f"{len(payload['evaluation']['protocol']['evaluation_seeds'])} evaluation years.")

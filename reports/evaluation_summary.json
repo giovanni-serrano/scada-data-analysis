@@ -125,7 +125,8 @@
       2098,
       2099
     ],
-    "selection_rule": "highest detection rate on calibration seeds with at most 1.0 false alarms per 1000 h",
+    "selection_rule": "highest detection rate on calibration seeds within the false-alarm budget",
+    "false_alarm_budget_per_1000h": 1.0,
     "grid": {
       "percentile": [
         95,

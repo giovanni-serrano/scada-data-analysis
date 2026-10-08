@@ -189,7 +189,8 @@ def evaluate(calibration_seeds=CALIBRATION_SEEDS, evaluation_seeds=EVALUATION_SE
         "synthetic_only": True,
         "protocol": {
             "calibration_seeds": calibration_seeds, "evaluation_seeds": evaluation_seeds,
-            "selection_rule": f"highest detection rate on calibration seeds with at most {MAX_FALSE_ALARMS_PER_1000H} false alarms per 1000 h",
+            "selection_rule": "highest detection rate on calibration seeds within the false-alarm budget",
+            "false_alarm_budget_per_1000h": MAX_FALSE_ALARMS_PER_1000H,
             "grid": {"percentile": PERCENTILES, "on_delay_hours": ON_DELAYS},
             "deadband": DEADBAND, "bootstrap_resamples": resamples, "bootstrap_seed": BOOTSTRAP_SEED,
             "primary_method": PRIMARY, "baseline_method": BASELINE,
