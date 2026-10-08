@@ -1,51 +1,54 @@
-# SCADA | Explorador de señales
+# ¿Podían los datos del SCADA avisar antes de que se dañara el generador?
 
-Análisis de señales SCADA de una unidad hidroeléctrica simulada: de los CSV crudos del historiador a una regla de alarma cuyo desempeño se mide en años que no se usaron para ajustarla.
+Un caso de estudio de monitoreo de condición con datos SCADA de una unidad hidroeléctrica simulada.
 
-**[Dashboard interactivo](https://giovanni-serrano.github.io/scada-data-analysis/)** · [Evaluación](reports/evaluation.md) · [Informe del año demo](reports/analysis.md)
+**[Ver el dashboard interactivo](https://giovanni-serrano.github.io/scada-data-analysis/)** · [Metodología y glosario](METODOLOGIA.md) · [Evaluación completa](reports/evaluation.md)
 
-Los datos son sintéticos: los produce un generador con semilla fija. Proyecto desarrollado con asistencia de IA (Codex y Claude Code).
+## El problema real
 
-## El problema
+Mi primer acercamiento a un fallo real fue en las visitas de familiarización a una central hidroeléctrica. Un generador salió de servicio con los devanados del rotor gravemente dañados, y el informe dejó varias causas posibles abiertas: sobrecarga, ambiente caluroso, refrigeración obstruida, sobreexcitación… Me quedé con una pregunta: **¿el SCADA, que registra la unidad cada hora, podía haber avisado antes?**
 
-La temperatura de un devanado sube con la carga. Un umbral fijo o se dispara a plena carga sin que pase nada, o no ve una degradación a media carga. ¿Se puede avisar antes de un disparo comparando cada hora con horas parecidas? ¿Y cuánto acierta esa regla cuando la degradación es pequeña?
+## Por qué es difícil
+
+La temperatura de un devanado sube con la carga. Es como la fiebre: 37,8 °C no significa lo mismo después de correr que en reposo. Un umbral fijo o suena a plena carga sin que pase nada, o no ve un calentamiento anormal a media carga. Y una falla empieza pequeña, escondida en el ruido de las mediciones.
 
 ## Qué hice
 
-- **Datos.** Un año horario de 20 señales con tags de historiador (`G1_P`, `G1_IA`, `G1_VAB`, `G1_TW_A`…; lista en [src/common.py](src/common.py)), a 60 Hz, con error de instrumento, desbalance entre fases del orden del 1 % y factor de potencia variable. Cada año tiene de 2 a 4 episodios de degradación en momentos y tamaños sorteados.
-- **Calidad de registros.** Inventario con SHA-256, lectura estricta y procedencia por fila. Huecos, duplicados contradictorios, marcas de tiempo desplazadas y un sensor congelado se marcan y se excluyen de la comparación; nada se interpola ni se borra.
-- **Regla de alarma.** Dos indicadores (elevación térmica y dispersión entre corrientes de fase) se comparan con un percentil de su celda de carga y ambiente, calculado con los primeros 180 días. La lógica sigue los conceptos de ISA-18.2: retardo de activación, banda muerta y dos prioridades.
-- **Evaluación ciega.** 20 años simulados para elegir percentil y retardo, con una regla fijada de antemano; 100 años distintos para medir. El detector no recibe la lista de episodios.
+1. **Construí datos parecidos, pero no iguales.** No puedo publicar los de la planta, así que simulé años horarios de SCADA (20 señales, 60 Hz, con ruido y defectos de historiador) con 2 a 4 fallas por año que calientan el devanado y desbalancean las corrientes hasta un disparo. Así sé cuándo empieza cada una y puedo calificar al detector.
+2. **Revisé los registros.** Las horas faltantes, duplicadas o con un sensor congelado se marcan y no entran en la estadística; nada se borra ni se inventa.
+3. **Comparé cada hora con horas parecidas.** El umbral cambia según la carga y el ambiente. Si el devanado está caliente *para esa carga y ese ambiente*, esas dos causas no bastan para explicarlo.
+4. **Diseñé la alarma como en una sala de control** (ISA-18.2): retardo para ignorar picos, histéresis para que no parpadee y dos prioridades.
+5. **La medí en años que nunca vio.** Ajusté la alarma con 20 años simulados y la medí una sola vez en otros 100.
 
 ## Qué encontré
 
-Sobre 100 años de evaluación (291 episodios), con percentil 95 y 2 h de retardo:
+En esos 100 años simulados (291 degradaciones):
 
-| Umbral | Episodios detectados [IC 95 %] | Falsas alarmas por 1000 h [IC 95 %] | Anticipación mediana [IC 95 %] |
-| --- | --- | --- | --- |
-| Condicionado por carga y ambiente | **64 %** [58; 70] | 0,47 [0,38; 0,56] | 37 h [31; 41] |
-| Condicionado solo por carga | 60 % [54; 66] | 0,10 [0,07; 0,14] | 32 h [29; 36] |
-| Fijo (línea base) | 28 % [23; 34] | 0,15 [0,11; 0,20] | 30 h [24; 38] |
+- **Avisó en 64 de cada 100 degradaciones.** Un umbral fijo avisó en 28 de cada 100.
+- **Se equivocó poco:** 0,47 falsas alarmas por cada 1000 h de operación normal, unas 4 al año.
+- **Avisó con tiempo:** en la mitad de los casos, 37 h o más antes del disparo, suficiente para planear una parada.
 
-- Condicionar el umbral detecta 36 puntos más que un umbral fijo (IC 95 %: 30 a 42).
-- Añadir el ambiente a la carga suma 4 puntos de detección y multiplica por 4,6 las falsas alarmas.
-- La detección depende del tamaño del episodio: 32 % en el tramo de menor severidad, 90 % en el mayor.
-- La anticipación va de 11 a 70 h en el 80 % central de los episodios detectados.
-- Subir el percentil o el retardo casi elimina las falsas alarmas y baja la detección (P99 y 3 h: 44 %).
-- La banda muerta reduce las reactivaciones de alarma de 4.893 a 3.660 en los años de evaluación.
-
-![Detección frente a falsas alarmas](reports/05_operating_points.png)
-
-## Qué aprendí
-
-- **Elegir con unos datos y medir con otros.** En las semillas de calibración la configuración elegida detectaba el 77 %; en las de evaluación, el 64 %. El primer número es optimista porque es el mejor de nueve.
-- **Condicionar por lo que domina.** La elevación térmica depende sobre todo de la carga; el ambiente aporta poco y cuesta falsas alarmas.
-- **Una alarma es un compromiso.** Retardo, banda muerta y prioridad deciden cuántas veces suena y cuántas se puede atender, tanto como el umbral.
-- **Conservar no es aceptar.** Una fila dudosa se guarda con su procedencia, pero no entra en la estadística.
+Las degradaciones pequeñas son las que más se escapan: se detectó el 32 % de las más leves y el 90 % de las más fuertes.
 
 ## Limitaciones
 
-> Los datos salen de un generador con ecuaciones simples, no de una planta. La evaluación es ciega respecto al momento y al tamaño de cada episodio, pero el mismo autor diseñó el generador y el detector, y el tipo de degradación (una rampa lineal en temperatura y desbalance) es conocido. Los datos son horarios, así que los tiempos de ISA-18.2 están escalados a horas. Los porcentajes describen este escenario; en una unidad real habría que repetir la medición con sus datos.
+> Los datos son simulados y la forma de la falla la definí yo: una rampa de pocos días, cuando un daño como el de la planta tarda meses. El fallo real fue en el rotor y aquí uso señales del estator como indicio indirecto: una falla a tierra casi no se vería. Las cifras valen para este escenario; en una unidad real habría que repetir la medición con sus datos.
+
+## Qué sigue
+
+- Usar la potencia reactiva (`G1_Q`) para separar la hipótesis de sobreexcitación.
+- Añadir señales del rotor al generador (corriente de campo y vibración) y contar arranques y paradas.
+- Repetir la evaluación con datos reales que tengan fallas registradas.
+
+---
+
+## Para profundizar
+
+- [Metodología y glosario](METODOLOGIA.md): cómo funciona cada paso, en palabras simples y con la tabla de qué fallas ve el método.
+- [Evaluación](reports/evaluation.md) e [informe del año demo](reports/analysis.md): todas las tablas, generadas por el código.
+- [Verificación](reports/verification.md): qué se comprobó en esta versión.
+
+Proyecto personal desarrollado con asistencia de IA (Codex y Claude Code).
 
 ## Cómo reproducirlo
 
@@ -61,6 +64,4 @@ python -m venv .venv
 .\.venv\Scripts\python -B -m http.server 8000 --bind 127.0.0.1 --directory docs
 ```
 
-El dashboard queda en `http://127.0.0.1:8000/`. La evaluación tarda unos dos minutos y el exportador la repite para comprobarla. Cada ejecución necesita una carpeta de salida nueva.
-
-Las **56 pruebas** cubren reproducibilidad, conservación de registros, lógica de alarmas, puntuación de la evaluación y exportación web. Lo comprobado en esta versión está en [reports/verification.md](reports/verification.md); la licencia de Plotly.js, en [docs/assets/vendor/THIRD_PARTY.md](docs/assets/vendor/THIRD_PARTY.md).
+El dashboard queda en `http://127.0.0.1:8000/`. La evaluación tarda unos dos minutos. Cada ejecución necesita una carpeta de salida nueva. Las **56 pruebas** cubren reproducibilidad, conservación de registros, lógica de alarmas, puntuación de la evaluación, exportación web y que las cifras de este README y del dashboard coincidan con los resultados.

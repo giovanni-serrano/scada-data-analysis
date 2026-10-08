@@ -128,6 +128,21 @@ class PublishedSiteTests(unittest.TestCase):
         self.assertLessEqual(self.html.lower().count("sintétic"), 3)
         self.assertIn("60 Hz", self.html)
         self.assertEqual(self.html.count('role="tab"'), 6)
+        # The summary tab holds placeholders only: every result it shows is computed by app.js from the published JSON.
+        summary = self.html[self.html.index('<section id="resumen"'):self.html.index('<section id="variables"')]
+        visible = re.sub(r"<[^>]+>", " ", summary)
+        primary = self.published["evaluation"]["evaluation"]["load_ambient"]
+        fixed = self.published["evaluation"]["evaluation"]["none"]
+        for figure in (f"{round(100 * primary['detection_rate'])} de cada", f"{round(100 * fixed['detection_rate'])} de cada",
+                       f"{primary['false_alarms_per_1000h']:.2f}".replace(".", ","), f"{primary['lead_hours_median']:.0f} h",
+                       str(primary["events"]), f"{round(100 * primary['by_severity'][0]['detection_rate'])} %"):
+            self.assertNotIn(figure, visible)
+        for target in ("result-detection", "result-false", "result-lead", "result-basis", "findings-detail"):
+            self.assertRegex(summary, rf'id="{target}"[^>]*>—<')
+            self.assertIn(f'$("{target}")', self.script)
+        for field in ("primary.detection_rate", "fixed.detection_rate", "primary.false_alarms_per_1000h", "primary.lead_hours_median",
+                      "primary.events", "bands[0].detection_rate"):
+            self.assertIn(field, self.script)
 
     def test_every_element_the_script_fills_exists(self):
         declared = set(re.findall(r'id="([^"]+)"', self.html))

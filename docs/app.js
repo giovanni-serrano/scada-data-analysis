@@ -12,7 +12,7 @@
   const shapes = {a: "circle", b: "square", c: "diamond"};
   const family = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
   const fmt = (value, digits = 0) => new Intl.NumberFormat("es", {useGrouping: "always", maximumFractionDigits: digits, minimumFractionDigits: digits}).format(value);
-  const pct = value => value == null ? "—" : fmt(100 * value) + " %";
+  const pct = value => value == null ? "—" : fmt(100 * value) + "\u00a0%";
   const span = (pair, scale = 1, digits = 0) => pair ? fmt(scale * pair[0], digits) + " – " + fmt(scale * pair[1], digits) : "—";
   const hoursText = value => value == null ? "—" : fmt(value) + " h";
   // El color y el símbolo siguen al método en todas las vistas.
@@ -76,13 +76,20 @@
     const evaluation = data.evaluation, results = evaluation.evaluation, primary = results.load_ambient, fixed = results.none;
     const protocol = evaluation.protocol, point = evaluation.operating_point, years = protocol.evaluation_seeds.length;
     const detected = data.events.filter(event => event.detected).length;
-    $("signal-count").textContent = fmt(data.signal_count);
-    $("record-count").textContent = fmt(data.summary.source_rows);
-    $("eval-years").textContent = fmt(years);
-    $("eval-events").textContent = fmt(primary.events);
-    $("headline").textContent = "La alarma de prioridad alta detecta el " + pct(primary.detection_rate) + " de los episodios, con " +
-      fmt(primary.false_alarms_per_1000h, 2) + " falsas alarmas por 1000 h y " + fmt(primary.lead_hours_median) +
-      " h de anticipación mediana. Un umbral fijo detecta el " + pct(fixed.detection_rate) + ".";
+    // Resumen: cada cifra visible sale del bloque de evaluación publicado.
+    const per100 = value => fmt(100 * value);
+    const bands = primary.by_severity, fixedBands = fixed.by_severity;
+    $("result-detection").textContent = per100(primary.detection_rate) + " de cada 100";
+    $("result-detection-note").textContent = "fallas avisadas antes del disparo. Con un umbral fijo, " + per100(fixed.detection_rate) + " de cada 100.";
+    $("result-false").textContent = fmt(primary.false_alarms_per_1000h, 2) + " por 1000 h";
+    $("result-false-note").textContent = "falsas alarmas en operación normal: unas " + fmt(primary.false_alarms_per_1000h * 8.76) + " al año.";
+    $("result-lead").textContent = hoursText(primary.lead_hours_median) + " o más";
+    $("result-lead-note").textContent = "de margen en la mitad de los avisos: tiempo para planear una parada.";
+    $("result-basis").textContent = "Medido en " + fmt(years) + " años simulados que la regla nunca vio (" + fmt(primary.events) +
+      " fallas). La regla se ajustó con otros " + fmt(protocol.calibration_seeds.length) + ".";
+    $("findings-detail").textContent = "Comparar con horas parecidas avisa en " + per100(primary.detection_rate) + " de cada 100 fallas; un umbral fijo, en " +
+      per100(fixed.detection_rate) + ". Pero el tamaño importa: se detectó el " + pct(bands[0].detection_rate) + " de las fallas más leves y el " +
+      pct(bands.at(-1).detection_rate) + " de las más fuertes (con umbral fijo, " + pct(fixedBands[0].detection_rate) + " y " + pct(fixedBands.at(-1).detection_rate) + ").";
     const facts = [["Horas sin medición", data.summary.measurement_hours_missing, "No se interpolan; el hueco queda documentado."],
       ["Horas contradictorias", data.quality.multiple_hours, "Se conservan las dos alternativas; ninguna entra en la selección estadística."],
       ["Marcas de tiempo desplazadas", data.quality.shifted_rows, "Reciben una hora lógica derivada; la marca original no cambia."],
@@ -151,7 +158,6 @@
       }
       return tr;
     }));
-    const bands = primary.by_severity;
     $("severity-note").textContent = "En el tramo de menor severidad se detecta el " + pct(bands[0].detection_rate) +
       " de los episodios; en el de mayor, el " + pct(bands.at(-1).detection_rate) + ". En el 80 % central de los episodios detectados la alarma se adelanta entre " +
       fmt(primary.lead_hours_p10) + " y " + fmt(primary.lead_hours_p90) + " h.";
@@ -176,21 +182,25 @@
     });
   }
   async function overview() {
-    const r = data.relationships.reference, c = data.coverage;
-    const strongest = data.events.reduce((best, event) => event.severity > best.severity ? event : best);
-    const t = strongest.timeline;
-    $("overview-event-caption").textContent = "Dispersión de corriente antes del disparo del episodio " + strongest.id;
+    const r = data.relationships.reference;
+    // Un episodio de tamaño intermedio: el más cercano a la mediana de severidad del año demo.
+    const sorted = [...data.events].sort((one, two) => one.severity - two.severity);
+    const example = sorted[Math.floor((sorted.length - 1) / 2)], t = example.timeline.filter(item => item.eligible);
+    $("overview-event-caption").textContent = "Una falla del año demo: la alarma alta se activó " + hoursText(example.lead_hours) + " antes del disparo";
+    if (!example.detected) $("overview-event-caption").textContent = "Una falla del año demo que la alarma alta no detectó";
+    const winding = item => (item.winding_temperature_a_c + item.winding_temperature_b_c + item.winding_temperature_c_c) / 3;
+    const alarmed = t.filter(item => item.alarm_high);
     await Promise.all([
-      plot("overview-load", [trace(r.map(item => item.active_power_kw), r.map(item => item.mean_current_a), "Corriente media", colors.series,
-        {mode: "markers", marker: {size: 5, color: colors.series, opacity: .55}, hovertemplate: "%{x:.1f} kW · %{y:.1f} A<extra></extra>"})], mini("Potencia activa (kW)", "Corriente media (A)"), true),
-      plot("overview-quality", [trace(c.map(item => item.t), c.map(item => item.selected), "Horas seleccionadas", colors.series,
-        {hovertemplate: "%{x|%d/%m/%Y} · %{y} horas<extra></extra>"})], mini("Fecha", "Horas por día"), true),
-      plot("overview-event", [trace(t.map(item => item.hours_to_trip), t.map(item => item.eligible ? item.current_spread_pct : null), "Indicador", colors.series,
-          {hovertemplate: "%{x} h · %{y:.2f} %<extra>Indicador</extra>"}),
-        trace(t.map(item => item.hours_to_trip), t.map(item => item.eligible ? item.current_spread_pct_threshold : null), "Umbral", colors.context,
-          {line: {color: colors.context, dash: "dash", width: 1.5}, hovertemplate: "%{x} h · %{y:.2f} %<extra>Umbral</extra>"})],
-        mini("Horas respecto del disparo", "Dispersión (%)"), true),
-      plot("overview-eval", severityTraces(8), mini("Severidad del episodio", "Detectados (%)", {yaxis: axis("Detectados (%)", {range: [0, 100]})}), true)
+      plot("overview-thermal", [trace(r.map(item => item.active_power_kw), r.map(winding), "Temperatura del devanado", colors.series,
+        {mode: "markers", marker: {size: 5, color: colors.series, opacity: .55}, hovertemplate: "%{x:.0f} kW · %{y:.1f} °C<extra></extra>"})], mini("Potencia activa (kW)", "Devanado (°C)"), true),
+      plot("overview-event", [trace(t.map(item => item.hours_to_trip), t.map(item => item.winding_rise_c), "Elevación térmica", colors.series,
+          {hovertemplate: "%{x} h · %{y:.1f} °C<extra>Elevación térmica</extra>"}),
+        trace(t.map(item => item.hours_to_trip), t.map(item => item.winding_rise_c_threshold), "Umbral", colors.context,
+          {line: {color: colors.context, dash: "dash", width: 1.5}, hovertemplate: "%{x} h · %{y:.1f} °C<extra>Umbral</extra>"}),
+        trace(alarmed.map(item => item.hours_to_trip), alarmed.map(item => item.winding_rise_c), "Alarma alta", colors.alert,
+          {mode: "markers", marker: {size: 7, symbol: "diamond", color: colors.alert}, hovertemplate: "%{x} h<extra>Alarma alta</extra>"})],
+        mini("Horas antes del disparo", "Elevación (°C)"), true),
+      plot("overview-eval", severityTraces(8), mini("Tamaño de la falla (severidad)", "Detectadas (%)", {yaxis: axis("Detectadas (%)", {range: [0, 100]})}), true)
     ]);
   }
   async function variables() {
