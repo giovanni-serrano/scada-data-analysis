@@ -25,4 +25,4 @@ Los tags (`G1_P`, `G1_IA`, …) son inventados para este proyecto.
 
 - Instalación desde cero, otros sistemas operativos y otros navegadores.
 - Auditoría de accesibilidad con lectores de pantalla.
-- El sitio público, que no cambia hasta fusionar esta rama.
+- La carga del sitio publicado en un navegador real: GitHub Pages despliega `main` sin errores, pero desde el entorno de desarrollo no se pudo abrir la página.

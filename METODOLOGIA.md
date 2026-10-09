@@ -26,7 +26,9 @@ Dos *indicadores* resumen el estado del devanado:
 
 Con la referencia, las horas se agrupan en *celdas* de carga (0–200–300–400–500–600–700–900 kW) y de ambiente (10–26,5–29,5–45 °C). Una celda necesita al menos 30 horas para tener umbral. El *umbral* de cada indicador es el *percentil* 95 de su celda.
 
-## 4. La alarma (conceptos de ISA-18.2)
+## 4. La alerta (mecanismos inspirados en ISA-18.2)
+
+De ISA-18.2 se toman el retardo, la banda muerta, las prioridades y las métricas de revisión. El proyecto no afirma cumplir la norma.
 
 | Tag | Prioridad | Se activa cuando… |
 |---|---|---|
@@ -36,7 +38,7 @@ Con la referencia, las horas se agrupan en *celdas* de carga (0–200–300–40
 
 - *Retardo de activación*: 2 h seguidas sobre el umbral.
 - *Banda muerta*: una vez activa, la alarma solo se repone cuando el indicador baja 1,0 °C (elevación térmica) o 0,4 puntos porcentuales (dispersión) por debajo del umbral.
-- La prioridad baja informa; la alta pide acción. **Todas las cifras de resultados son de la prioridad alta.**
+- La prioridad baja es informativa; la alta es una **alerta experimental**. Una alarma operativa real necesita además una consecuencia definida, una respuesta del operador y un tiempo de respuesta justificado, y eso aquí no se define. **Todas las cifras de resultados son de la prioridad alta.**
 
 Los datos son horarios, así que los tiempos de la norma, pensados en segundos y minutos, están escalados a horas.
 
@@ -59,20 +61,21 @@ Sobre 100 simulaciones de un año de evaluación (291 episodios), con percentil 
 
 - Con las mismas simulaciones, condicionar el umbral detecta 36 puntos más que el umbral fijo (IC 95 %: 30 a 42).
 - Por severidad (de menor a mayor): 32 %, 61 %, 70 % y 90 % de episodios detectados.
+- Las fallas de prueba son del mismo tipo que busca el detector (rampa de temperatura y desbalance). Las simulaciones de evaluación son independientes de las de calibración, pero no prueban que el método detecte otros tipos de daño.
 - En calibración, la misma configuración detectaba el 77 %. La caída hasta el 64 % es la razón de medir con simulaciones distintas: el primer número es el mejor de nueve intentos.
 
 ## 6. Causas típicas de daño en devanados, y qué puede decir el método
 
-Cuando un generador sale de servicio por daño en los devanados, estas son causas que suelen considerarse:
+Cuando un generador sale de servicio por daño en los devanados, estas son causas que suelen considerarse. Una alerta solo dice que la temperatura está alta *para esa carga y ese ambiente*: no identifica la causa. Las causas compatibles requieren inspección o mediciones adicionales para confirmarse.
 
-| Causa típica | Señal SCADA que la delataría | ¿La cubre este proyecto? |
+| Causa típica | Señal SCADA que la delataría | Qué puede decir una alerta |
 |---|---|---|
-| Sobrecarga | Potencia frente a la nominal | Sí: el umbral depende de la carga, así que la descarta como explicación única |
-| Ambiente caluroso | Temperatura de la sala | Sí: el umbral también depende del ambiente |
-| Refrigeración obstruida | Temperatura alta *para esa carga y ese ambiente* | Sí: es justo lo que detecta |
-| Sobreexcitación | Potencia reactiva o corriente de campo | Todavía no: `G1_Q` existe pero no se usa en el umbral |
-| Espiras en cortocircuito en el rotor | Más corriente de campo para el mismo punto de operación; vibración | Solo de forma indirecta, por la temperatura del estator |
-| Falla a tierra del rotor | Relé de falla a tierra del rotor, resistencia de aislamiento | No: no se ve con estas señales |
+| Sobrecarga | Potencia frente a la nominal | No basta para explicarla: el umbral ya depende de la carga. No excluye daños por sobrecargas pasadas |
+| Ambiente caluroso | Temperatura de la sala | No basta para explicarla: el umbral ya depende del ambiente |
+| Refrigeración deficiente | Temperatura alta *para esa carga y ese ambiente* | Compatible con la alerta, pero no se distingue de otras causas internas: requiere inspección |
+| Sobreexcitación | Potencia reactiva o corriente de campo | Compatible, sin confirmar: `G1_Q` no entra en el umbral, así que no se puede separar |
+| Espiras en cortocircuito en el rotor | Más corriente de campo para el mismo punto de operación; vibración | Compatible solo de forma indirecta, por la temperatura del estator |
+| Falla a tierra del rotor | Relé de falla a tierra del rotor, resistencia de aislamiento | No se ve con estas señales |
 | Arranques y paradas frecuentes | Conteo de arranques en el historiador | Todavía no |
 | Inestabilidad de tensión o frecuencia | Tensiones de línea y frecuencia | Todavía no: las señales existen, pero no se analizan |
 
@@ -82,7 +85,7 @@ Cuando un generador sale de servicio por daño en los devanados, estas son causa
 - **¿Por qué tantas simulaciones?** Un año trae solo 2 a 4 fallas. Con unas pocas, el porcentaje de detección cambiaría mucho de una prueba a otra; hacen falta cientos para que sea confiable. Por eso se usan 100 simulaciones de un año para medir (291 fallas en total).
 - **¿Por qué separar calibración y evaluación?** Si eliges y mides con los mismos datos, te calificas con el examen que ya viste. Por eso el 77 % de calibración bajó al 64 % en simulaciones nuevas.
 - **¿Por qué el ambiente cuesta falsas alarmas?** La elevación térmica ya resta el ambiente, así que dividir también por ambiente aporta poca información nueva. Además, cada celda queda con menos horas de referencia y con un umbral más ajustado: detecta un poco más y también se cruza más veces por azar.
-- **¿Por qué dos prioridades?** Si la prioridad baja contara como detección, se detectarían todos los episodios, pero con decenas de falsas alarmas por cada 1000 h. La alta, que exige los dos indicadores a la vez, es la que se puede atender.
+- **¿Por qué dos prioridades?** Si la prioridad baja contara como detección, se detectarían todos los episodios, pero con decenas de falsas alarmas por cada 1000 h. La alta exige los dos indicadores a la vez y es la única que cuenta como detección.
 
 ## Glosario
 
@@ -105,7 +108,7 @@ Cuando un generador sale de servicio por daño en los devanados, estas son causa
 | Umbral fijo (línea base) | Un solo umbral para todas las horas. Sirve para comparar. |
 | Retardo de activación | Tiempo que la condición debe mantenerse antes de anunciar la alarma, como un relé con temporizador. |
 | Banda muerta | Histéresis: la alarma se apaga solo cuando la señal baja claramente del umbral. |
-| Prioridad | Qué tan urgente es atender la alarma: baja informa, alta pide acción. |
+| Prioridad | Qué tan urgente sería atenderla. Aquí la baja es informativa y la alta es una alerta experimental que exige los dos indicadores a la vez. |
 | Alarma fugaz | Se apaga sola en 2 h o menos. Muchas fugaces cansan al operador. |
 | Alarma persistente | Sigue activa 24 h o más. |
 | Reactivación | La alarma vuelve a sonar menos de 6 h después de apagarse. |

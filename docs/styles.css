@@ -192,8 +192,8 @@ main { min-height: 60vh; padding: var(--s7) var(--gutter); }
 .hypotheses li { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s2) 0; border-top: 1px solid var(--line); font-size: 15px; color: var(--ink); }
 .hypotheses li:first-child { border-top: 0; }
 .verdict { flex: none; font-size: 12px; font-weight: 600; line-height: 1.3; padding: 3px var(--s2); border-radius: 999px; border: 1px solid var(--line-strong); color: var(--ink-2); background: var(--surface); }
-.verdict.rules-out { color: var(--series); }
-.verdict.points { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-line); }
+.verdict.not-enough { color: var(--series); }
+.verdict.compatible { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-line); }
 .verdict.partial { color: var(--ink-2); }
 .verdict.blind { color: var(--ink-3); border-style: dashed; }
 .steps { margin: 0 0 var(--s4); padding-left: 20px; font-size: 15px; color: var(--ink-2); max-width: 32em; }
@@ -207,6 +207,7 @@ main { min-height: 60vh; padding: var(--s7) var(--gutter); }
 .definitions.glossary { grid-template-columns: 220px minmax(0, 1fr); gap: 0; max-width: 60em; font-size: 15px; color: var(--ink-2); }
 .glossary dt, .glossary dd { padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
 .glossary dt { padding-right: var(--s5); }
+.editorial-row p.caveat { font-size: 13px; color: var(--ink-3); border-left: 2px solid var(--line-strong); padding-left: var(--s3); }
 /* Paneles de gráfica: el único contenedor con fondo propio */
 figure { margin: 0; min-width: 0; }
 .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s4) var(--s5) var(--s3); }
