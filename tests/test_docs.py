@@ -10,6 +10,9 @@ PROJECT = Path(__file__).resolve().parents[1]
 REAL_CASE_PHRASES = ("familiarización", "fallo real", "primer acercamiento", "el informe", "de la planta",
                      "no puedo publicar", "parecidos, pero no iguales", "en el rotor y", "se dañara el generador",
                      "material privado")
+# Wording that claims more than a synthetic, experimental alert can show: causes or operator action.
+OVERCLAIM_PHRASES = ("la descarta", "la señala", "es lo que detecta", "es justo lo que detecta", "pide acción",
+                     "pide una acción", "como en una sala de control", "servidor local")
 
 
 class ReadmeTests(unittest.TestCase):
@@ -32,7 +35,7 @@ class ReadmeTests(unittest.TestCase):
                      f"{spanish(primary['lead_hours_median'], 0)} h o más antes del disparo",
                      f"el {percent(primary['by_severity'][0]['detection_rate'])} % de las más leves",
                      f"el {percent(primary['by_severity'][-1]['detection_rate'])} % de las más fuertes",
-                     f"Ajusté la alarma con {len(protocol['calibration_seeds'])} simulaciones de un año y la medí una sola vez en otras {len(protocol['evaluation_seeds'])}"):
+                     f"Ajusté la alerta con {len(protocol['calibration_seeds'])} simulaciones de un año y la medí una sola vez en otras {len(protocol['evaluation_seeds'])}"):
             self.assertIn(text, self.readme)
         # Methodology: the full table with intervals, the comparison and the calibration figure.
         for row in results.values():
@@ -81,8 +84,13 @@ class ReadmeTests(unittest.TestCase):
             self.assertNotIn(outdated, self.readme + self.methodology)
         # A general framing only: nothing may point to a specific plant, incident or report.
         reports = "".join((PROJECT / "reports" / name).read_text(encoding="utf-8") for name in ("verification.md", "evaluation.md"))
-        for phrase in REAL_CASE_PHRASES:
+        for phrase in REAL_CASE_PHRASES + OVERCLAIM_PHRASES:
             self.assertNotIn(phrase, (self.readme + self.methodology + reports).lower())
+        # The scope of the evaluation is stated next to the results, and ISA-18.2 is an inspiration, not a claim.
+        findings = self.readme.split("## Qué encontré")[1].split("## Limitaciones")[0]
+        self.assertIn("mismo tipo que busca el detector", findings)
+        self.assertIn("inspirada en ISA-18.2", self.readme)
+        self.assertIn("no afirma cumplir la norma", self.methodology)
         self.assertNotIn("años simulados", self.readme + self.methodology + reports)
         self.assertLess(len(self.readme.splitlines()), 80)
         for document in ("README.md", "METODOLOGIA.md"):

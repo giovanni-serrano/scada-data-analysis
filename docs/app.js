@@ -86,7 +86,7 @@
     $("result-lead").textContent = hoursText(primary.lead_hours_median) + " o más";
     $("result-lead-note").textContent = "de margen en la mitad de los avisos: tiempo para planear una parada.";
     $("result-basis").textContent = "Medido en " + fmt(years) + " simulaciones de un año que la regla nunca vio (" + fmt(primary.events) +
-      " fallas). La regla se ajustó con otras " + fmt(protocol.calibration_seeds.length) + ".";
+      " fallas, del mismo tipo que busca el detector). La regla se ajustó con otras " + fmt(protocol.calibration_seeds.length) + ".";
     $("findings-detail").textContent = "Comparar con horas parecidas avisa en " + per100(primary.detection_rate) + " de cada 100 fallas; un umbral fijo, en " +
       per100(fixed.detection_rate) + ". Pero el tamaño importa: se detectó el " + pct(bands[0].detection_rate) + " de las fallas más leves y el " +
       pct(bands.at(-1).detection_rate) + " de las más fuertes (con umbral fijo, " + pct(fixedBands[0].detection_rate) + " y " + pct(fixedBands.at(-1).detection_rate) + ").";
@@ -128,7 +128,7 @@
 
     $("eval-lead").textContent = "El percentil y el retardo se eligieron con " + fmt(protocol.calibration_seeds.length) +
       " simulaciones de un año y el desempeño se midió una vez con otras " + fmt(years) +
-      ". El detector no recibe la lista de episodios: la comparación con la verdad se hace después.";
+      ". El detector no recibe la lista de episodios: la comparación con la verdad se hace después. Las fallas de prueba son del mismo tipo que busca el detector.";
     const tiles = [["Episodios detectados", pct(primary.detection_rate), "IC 95 %: " + span(primary.ci95.detection_rate, 100) + " % · " + fmt(primary.detected) + " de " + fmt(primary.events)],
       ["Falsas alarmas por 1000 h", fmt(primary.false_alarms_per_1000h, 2), "IC 95 %: " + span(primary.ci95.false_alarms_per_1000h, 1, 2)],
       ["Anticipación mediana", hoursText(primary.lead_hours_median), "IC 95 %: " + span(primary.ci95.lead_hours_median) + " h"],
@@ -307,7 +307,7 @@
       if (!window.Plotly) throw new Error("No se pudo cargar la biblioteca local de gráficos.");
       Plotly.register({moduleType: "locale", name: "es-local", dictionary: {"Zoom": "Ampliar", "Pan": "Desplazar", "Reset axes": "Restablecer ejes"}, format: {days: ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"], shortDays: ["dom","lun","mar","mié","jue","vie","sáb"], months: ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"], shortMonths: ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"], decimal: ",", thousands: ".", grouping: [3], date: "%d/%m/%Y"}});
       const response = await fetch("assets/dashboard-data.json", {cache: "no-cache"});
-      if (!response.ok) throw new Error("No se pudo leer el archivo de datos. Sirve docs/ mediante HTTP y comprueba assets/dashboard-data.json.");
+      if (!response.ok) throw new Error("No se pudo leer el archivo de datos (assets/dashboard-data.json). Recarga la página; si lo abres en tu equipo, sírvelo con un servidor HTTP como indica el README.");
       const payload = await response.json();
       if (payload.schema_version !== 2 || payload.synthetic_only !== true || !Array.isArray(payload.events) || !Array.isArray(payload.coverage) || !payload.summary || !payload.relationships || !payload.evaluation) throw new Error("El archivo de datos no corresponde a esta versión del explorador.");
       data = payload; eventIndex = 0; populate(); await render();

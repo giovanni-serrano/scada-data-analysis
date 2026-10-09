@@ -8,7 +8,7 @@ from export_dashboard import build_payload, export, verified_evaluation
 from run_evaluation import write_outputs
 from run_pipeline import run
 from src.evaluate import evaluate
-from tests.test_docs import REAL_CASE_PHRASES
+from tests.test_docs import OVERCLAIM_PHRASES, REAL_CASE_PHRASES
 
 PROJECT = Path(__file__).resolve().parents[1]
 
@@ -125,7 +125,7 @@ class PublishedSiteTests(unittest.TestCase):
                 self.assertNotIn(outdated, text)
             for hedge in ("no demuestra", "no acredita", "no prueba", "no constituye"):
                 self.assertNotIn(hedge, text)
-            for phrase in REAL_CASE_PHRASES + ("años simulados",):
+            for phrase in REAL_CASE_PHRASES + OVERCLAIM_PHRASES + ("años simulados",):
                 self.assertNotIn(phrase, text.lower())
         self.assertEqual(self.html.count("scope-note"), 1)
         self.assertLessEqual(self.html.lower().count("sintétic"), 3)
@@ -140,6 +140,7 @@ class PublishedSiteTests(unittest.TestCase):
                        f"{primary['false_alarms_per_1000h']:.2f}".replace(".", ","), f"{primary['lead_hours_median']:.0f} h",
                        str(primary["events"]), f"{round(100 * primary['by_severity'][0]['detection_rate'])} %"):
             self.assertNotIn(figure, visible)
+        self.assertIn("mismo tipo que busca el detector", visible)
         for target in ("result-detection", "result-false", "result-lead", "result-basis", "findings-detail"):
             self.assertRegex(summary, rf'id="{target}"[^>]*>—<')
             self.assertIn(f'$("{target}")', self.script)

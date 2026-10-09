@@ -1,6 +1,6 @@
 # ¿Pueden los datos del SCADA avisar antes de que se dañe un generador?
 
-Un caso de estudio de monitoreo de condición con datos SCADA de una unidad hidroeléctrica simulada.
+Caso de estudio de monitoreo de condición con datos SCADA de una unidad hidroeléctrica simulada.
 
 **[Ver el dashboard interactivo](https://giovanni-serrano.github.io/scada-data-analysis/)** · [Metodología y glosario](METODOLOGIA.md) · [Evaluación completa](reports/evaluation.md)
 
@@ -10,15 +10,15 @@ En centrales hidroeléctricas es común que un generador salga de servicio por d
 
 ## Por qué es difícil
 
-La temperatura de un devanado sube con la carga. Es como la fiebre: 37,8 °C no significa lo mismo después de correr que en reposo. Un umbral fijo o suena a plena carga sin que pase nada, o no ve un calentamiento anormal a media carga. Y una falla empieza pequeña, escondida en el ruido de las mediciones.
+La temperatura de un devanado sube con la carga. Es como la fiebre: 37,8 °C no significa lo mismo después de correr que en reposo. Un umbral fijo o suena a plena carga sin que pase nada, o no ve un calentamiento anormal a media carga. Y una falla empieza pequeña, escondida en el ruido.
 
 ## Qué hice
 
 1. **Simulé los datos.** Con datos reales casi nunca se sabe cuándo empezó una falla; al simular conozco el inicio exacto y puedo calificar al detector. Cada simulación es un año horario de SCADA (20 señales, 60 Hz, ruido y defectos de historiador) con 2 a 4 fallas que calientan el devanado y desbalancean las corrientes hasta un disparo.
-2. **Revisé los registros.** Las horas faltantes, duplicadas o con un sensor congelado se marcan y no entran en la estadística; nada se borra ni se inventa.
-3. **Comparé cada hora con horas parecidas.** El umbral cambia según la carga y el ambiente. Si el devanado está caliente *para esa carga y ese ambiente*, esas dos causas no bastan para explicarlo.
-4. **Diseñé la alarma como en una sala de control** (ISA-18.2): retardo para ignorar picos, histéresis para que no parpadee y dos prioridades.
-5. **La medí en simulaciones que nunca vio.** Ajusté la alarma con 20 simulaciones de un año y la medí una sola vez en otras 100. Son tantas porque un año trae solo 2 a 4 fallas, y hacen falta cientos para que el porcentaje de detección sea confiable.
+2. **Revisé los registros.** Las horas faltantes, duplicadas o con un sensor congelado se marcan y quedan fuera de la estadística, sin borrar ni inventar nada.
+3. **Comparé cada hora con horas parecidas.** El umbral cambia según la carga y el ambiente: si el devanado está caliente *para esa carga y ese ambiente*, esas dos no bastan para explicarlo.
+4. **Diseñé una alerta experimental inspirada en ISA-18.2**: retardo para ignorar picos, histéresis para que no parpadee y dos prioridades.
+5. **La medí en simulaciones que nunca vio.** Ajusté la alerta con 20 simulaciones de un año y la medí una sola vez en otras 100. Son tantas porque un año trae solo 2 a 4 fallas y hacen falta cientos para que el porcentaje sea confiable.
 
 ## Qué encontré
 
@@ -28,16 +28,16 @@ En esas 100 simulaciones de un año (291 degradaciones):
 - **Se equivocó poco:** 0,47 falsas alarmas por cada 1000 h de operación normal, unas 4 al año.
 - **Avisó con tiempo:** en la mitad de los casos, 37 h o más antes del disparo.
 
-Las más pequeñas son las que se escapan: se detectó el 32 % de las más leves y el 90 % de las más fuertes.
+Se escapan sobre todo las pequeñas: se detectó el 32 % de las más leves y el 90 % de las más fuertes. **Ojo:** las fallas de prueba son del mismo tipo que busca el detector: las cifras miden consistencia en este escenario, no la detección de otros daños.
 
 ## Limitaciones
 
-> Los datos son simulados y la forma de la falla la definí yo: una rampa de pocos días, cuando los daños reales suelen desarrollarse durante meses. Las señales simuladas son del estator, así que un daño en el rotor solo se vería de forma indirecta y una falla a tierra casi no se vería. Las cifras valen para este escenario; en una unidad real habría que repetir la medición con sus datos.
+> Los datos son simulados y la forma de la falla la definí yo: una rampa de pocos días, cuando los daños reales suelen desarrollarse durante meses. Las señales simuladas son del estator, así que un daño en el rotor solo se vería de forma indirecta y una falla a tierra casi no se vería. En una unidad real habría que repetir la medición con sus datos.
 
 ## Qué sigue
 
 - Usar la potencia reactiva (`G1_Q`) para separar la hipótesis de sobreexcitación.
-- Añadir señales del rotor al generador (corriente de campo y vibración) y contar arranques y paradas.
+- Simular señales del rotor (corriente de campo, vibración) y contar arranques y paradas.
 - Repetir la evaluación con datos reales que tengan fallas registradas.
 
 ---

@@ -87,7 +87,7 @@ Activaciones desde el fin de la referencia en los años de evaluación (415370 h
 - La banda muerta reduce las activaciones de 17179 a 15619 y las reactivaciones de 4893 a 3660.
 - El 4 % de las activaciones es de prioridad alta (referencia habitual: en torno al 5 % en el nivel más alto).
 - Si también se cuenta la prioridad baja como detección, se detecta el 100 % de los episodios,
-  con 31,99 falsas alarmas por 1000 h: por eso la baja informa y la alta pide acción.
+  con 31,99 falsas alarmas por 1000 h: por eso la baja es informativa y solo la alta cuenta como detección.
 
 Los datos son horarios, así que los tiempos de la norma (segundos y minutos) están escalados a horas.
 Referencias: [Alarm management by the numbers](https://www.chemengonline.com/alarm-management-numbers/) y

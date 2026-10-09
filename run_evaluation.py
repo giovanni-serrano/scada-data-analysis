@@ -178,7 +178,7 @@ Activaciones desde el fin de la referencia en los años de evaluación ({held['e
 - La banda muerta reduce las activaciones de {plain['activations']} a {held['activations']} y las reactivaciones de {plain['repeats']} a {held['repeats']}.
 - El {percent(held['high_priority_share'])} de las activaciones es de prioridad alta (referencia habitual: en torno al 5 % en el nivel más alto).
 - Si también se cuenta la prioridad baja como detección, se detecta el {percent(any_priority['detection_rate'])} de los episodios,
-  con {number(any_priority['false_alarms_per_1000h'])} falsas alarmas por 1000 h: por eso la baja informa y la alta pide acción.
+  con {number(any_priority['false_alarms_per_1000h'])} falsas alarmas por 1000 h: por eso la baja es informativa y solo la alta cuenta como detección.
 
 Los datos son horarios, así que los tiempos de la norma (segundos y minutos) están escalados a horas.
 Referencias: [Alarm management by the numbers](https://www.chemengonline.com/alarm-management-numbers/) y
